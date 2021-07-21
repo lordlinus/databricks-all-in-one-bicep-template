@@ -26,7 +26,7 @@ Bicep is free and supported by Microsoft support and is fun, easy, and productiv
 More resources available at this [Link](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview#benefits-of-bicep-versus-other-tools)
 
 ## Architecture and Key Features
-![Architecture](https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/Architecture.jpg)
+![Architecture](https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/main/Architecture.jpg)
 
 * Based on best practices from <a href="https://github.com/Azure/AzureDatabricksBestPractices/blob/master/toc.md">Azure Databricks Best Practices</a> and template from <a href="https://github.com/Azure-Samples/modern-data-warehouse-dataops/tree/main/single_tech_samples/databricks/sample2_enterprise_azure_databricks_environment">Anti-Data-Exfiltration Reference architecture</a>
 * Hub and Spoke VNETs.[Link](https://docs.microsoft.com/en-us/azure/architecture/reference-architectures/hybrid-networking/hub-spoke?tabs=bicep)
