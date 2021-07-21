@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "southeastasia"
+    },
+    "hubVnetName": {
+      "value": "hubvnet"
+    },
+    "spokeVnetName": {
+      "value": "spokevnet"
+    },
+    "SpokeVnetCidr":{
+      "value": "10.179.0.0/16"
+    },
+    "HubVnetCidr": {
+      "value": "10.0.0.0/16"
+    },
+    "PrivateSubnetCidr": {
+      "value": "10.179.0.0/18"
+    },
+    "PublicSubnetCidr": {
+      "value": "10.179.64.0/18"
+    },
+    "FirewallSubnetCidr": {
+      "value": "10.0.1.0/26"
+    },
+    "PrivateLinkSubnetCidr": {
+      "value": "10.179.128.0/26"
+    },
+    "webappDestinationAddresses": {
+      "value": [
+        "52.187.145.107/32",
+        "52.187.0.85/32"
+      ]
+    },
+    "logBlobstorageDomains": {
+      "value": [
+        "dblogprodseasia.blob.core.windows.net"
+      ]
+    },
+    "extendedInfraIp": {
+      "value": [
+        "20.195.104.64/28"
+      ]
+    },
+    "sccReplayDomain": {
+      "value": [
+        "tunnel.southeastasia.azuredatabricks.net"
+      ]
+    },
+    "metastoreDomains": {
+      "value": [
+        "consolidated-southeastasia-prod-metastore.mysql.database.azure.com"
+      ]
+    },
+    "eventHubEndpointDomain": {
+      "value": [
+        "prod-southeastasia-observabilityeventhubs.servicebus.windows.net"
+      ]
+    },
+    "artifactBlobStoragePrimaryDomains": {
+      "value": [
+        "dbartifactsprodseap.blob.core.windows.net",
+        "arprodseapa1.blob.core.windows.net",
+        "arprodseapa2.blob.core.windows.net",
+        "arprodseapa3.blob.core.windows.net",
+        "dbartifactsprodeap.blob.core.windows.net"
+      ]
+    }
+  }
+}
