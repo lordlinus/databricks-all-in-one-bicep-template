@@ -1,3 +1,4 @@
+
 targetScope = 'subscription'
 
 @description('')
@@ -5,18 +6,18 @@ param userObjectId string
 var storageSuffix = environment().suffixes.storage
 
 @description('Auto generate prefix based on subscription')
-param prefix string = uniqueString(guid(subscription().subscriptionId))
+param prefix string = 'ss${uniqueString(guid(subscription().subscriptionId))}'
 
 var storageAccountName = '${substring(prefix, 0, 10)}stg01'
-var keyVaultName = '${substring(prefix, 0, 4)}kv01'
-var resourceGroupName = '${substring(prefix, 0, 4)}-rg'
-var adbWorkspaceName = '${substring(prefix, 0, 4)}AdbWksp'
-var nsgName = '${substring(prefix, 0, 4)}nsg'
-var firewallName = '${substring(prefix, 0, 4)}HubFW'
-var firewallPublicIpName = '${substring(prefix, 0, 4)}FWPIp'
-var fwRoutingTable = '${substring(prefix, 0, 4)}AdbRoutingTbl'
-var clientPcName = '${substring(prefix, 0, 4)}ClientPc'
-var eHNameSpace = 'eh${substring(prefix, 0, 4)}'
+var keyVaultName = '${substring(prefix, 0, 6)}kv01'
+var resourceGroupName = '${substring(prefix, 0, 6)}-rg'
+var adbWorkspaceName = '${substring(prefix, 0, 6)}AdbWksp'
+var nsgName = '${substring(prefix, 0, 6)}nsg'
+var firewallName = '${substring(prefix, 0, 6)}HubFW'
+var firewallPublicIpName = '${substring(prefix, 0, 6)}FWPIp'
+var fwRoutingTable = '${substring(prefix, 0, 6)}AdbRoutingTbl'
+var clientPcName = '${substring(prefix, 0, 6)}ClientPc'
+var eHNameSpace = '${substring(prefix, 0, 6)}eh'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace 
 
@@ -66,27 +67,39 @@ param FirewallSubnetCidr string
 @description('')
 param PrivateLinkSubnetCidr string
 
-resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: resourceGroupName
-  location: location
+
+module rg './resourcegroup/rg.template.bicep' = {
+  scope: subscription()
+  name: 'ResourceGroup'
+  params: {
+    location: location
+    resourceGroupName:resourceGroupName 
+  }
+  
 }
 
-module routeTable 'network/routetable.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module routeTable './network/routetable.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'RouteTable'
   params: {
     routeTableName: fwRoutingTable
   }
+  dependsOn:[
+    rg
+  ]
 }
-module nsg 'network/securitygroup.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module nsg './network/securitygroup.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'NetworkSecurityGroup'
   params: {
     securityGroupName: nsgName
   }
+  dependsOn:[
+    rg
+  ]
 }
-module vnets 'network/vnet.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module vnets './network/vnet.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'HubandSpokeVNET'
   params: {
     hubVnetName: hubVnetName
@@ -100,20 +113,26 @@ module vnets 'network/vnet.template.bicep' = {
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
   }
+  dependsOn:[
+    rg
+  ]
 }
 
-module adb 'databricks/workspace.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module adb './databricks/workspace.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'DatabricksWorkspace'
   params: {
     vnetName: spokeVnetName
     adbWorkspaceSkuTier: 'premium'
     adbWorkspaceName: adbWorkspaceName
   }
+  dependsOn:[
+    rg
+  ]
 }
 
-module hubFirewall 'network/firewall.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module hubFirewall './network/firewall.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'HubFirewall'
   params: {
     firewallName: firewallName
@@ -129,28 +148,37 @@ module hubFirewall 'network/firewall.template.bicep' = {
     dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.${storageSuffix}')
     clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
   }
+  dependsOn:[
+    rg
+  ]
 }
 
-module adlsGen2 'storage/storageaccount.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module adlsGen2 './storage/storageaccount.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'StorageAccount'
   params: {
     storageAccountName: storageAccountName
   }
+  dependsOn:[
+    rg
+  ]
 }
 
-module keyVault 'keyvault/keyvault.template.bicep' =  {
-  scope: resourceGroup(rg.name)
+module keyVault './keyvault/keyvault.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'KeyVault'
   params: {
     keyVaultName: keyVaultName
     objectId: userObjectId
   }
+  dependsOn:[
+    rg
+  ]
 }
 
-module clientpc 'other/clientdevice.template.bicep' = {
+module clientpc './other/clientdevice.template.bicep' = {
   name: 'ClientPC'
-  scope: resourceGroup(rg.name)
+  scope: resourceGroup(resourceGroupName)
   params: {
     adminUsername: adminUsername
     adminPassword: adminPassword
@@ -158,25 +186,32 @@ module clientpc 'other/clientdevice.template.bicep' = {
     clientPcName: clientPcName
   }
   dependsOn: [
+    rg
     vnets
   ]
 }
 
-module loganalytics 'monitor/loganalytics.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module loganalytics './monitor/loganalytics.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'loganalytics'
+  dependsOn:[
+    rg
+  ]
 }
 
-module eventHubLogging 'monitor/eventhub.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module eventHubLogging './monitor/eventhub.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'EventHub'
   params: {
     namespaceName: eHNameSpace
   }
+  dependsOn:[
+    rg
+  ]
 }
 
-module privateEndPoints 'network/privateendpoint.template.bicep' = {
-  scope: resourceGroup(rg.name)
+module privateEndPoints './network/privateendpoint.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
   name: 'PrivateEndPoints'
   params: {
     keyvaultName: keyVault.name
@@ -191,6 +226,35 @@ module privateEndPoints 'network/privateendpoint.template.bicep' = {
     targetSubResourceEventHub: 'namespace'
     vnetName: spokeVnetName
   }
+  dependsOn:[
+    rg
+  ]
+}
+
+module createDatabricksCluster './databricks/deployment.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
+  name: 'createDatabricksCluster'
+  params: {
+    location: location
+    pat_lifetime: '3600'
+  }
+  
+}
+
+module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
+  name: 'AddSecrets'
+  params: {
+    EventHubPK: eventHubLogging.outputs.eHPConnString
+    keyVaultName: keyVaultName
+    LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
+    LogAWkspkey: loganalytics.outputs.primarySharedKey
+    StorageAccountKey1: adlsGen2.outputs.key1
+    StorageAccountKey2: adlsGen2.outputs.key2
+  }
+  dependsOn:[
+    rg
+  ]
 }
 
 output resourceGroupName string = rg.name
@@ -210,3 +274,4 @@ output eHNamespaceId string = eventHubLogging.outputs.eHNamespaceId
 output eHubNameId string = eventHubLogging.outputs.eHubNameId
 output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 output eHPConnString string = eventHubLogging.outputs.eHPConnString
+output dsOutputs object = createDatabricksCluster.outputs.dsOutputs
