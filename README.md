@@ -60,6 +60,19 @@ More resources available at this [Link](https://docs.microsoft.com/en-us/azure/a
 * More sample Databricks notebooks
 * Add description to all parameters
 
+## Prerequisites
+- Managed Identity needs to be enabled as a resource provider inside Azure
+- For the bash script, `jq` must be installed.
+
+## Client password
+- Client PC password complexity requirements:
+The supplied password must be between 8-123 characters long and must satisfy at least 3 of password complexity requirements from the following:
+  - Contains an uppercase character
+  - Contains a lowercase character
+  - Contains a numeric digit
+  - Contains a special character
+  - Control characters are not allowed
+
 ## How To Use
 
 To clone and run this repo, you'll need [Git](https://git-scm.com), [Bicep](https://github.com/Azure/bicep/blob/main/docs/installing.md) and [azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed on your computer. Strongly recommend to use vs code to edit the file with bicep extension installed ([instructions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)) for intellisense and other completions.
