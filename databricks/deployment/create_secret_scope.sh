@@ -1,25 +1,27 @@
-#!/usr/bin/env bash
+#/bin/bash -e
+secret_scope_payload=$(cat << EOF | envsubst | jq -c
+{
+    "scope": "${ADB_SECRET_SCOPE_NAME}",
+    "scope_backend_type": "AZURE_KEYVAULT",
+    "backend_azure_keyvault":{"resource_id": "${AKV_ID}","dns_name": "${AKV_URI}"},
+    "initial_manage_principal": "users"
+}
+EOF
+)
+echo "$secret_scope_payload" >> "$AZ_SCRIPTS_OUTPUT_PATH"
 
-# Databricks Auth headers
 adbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)
 azureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)
 
-# Create Auth header for Databricks
 authHeader="Authorization: Bearer $adbGlobalToken"
 adbSPMgmtToken="X-Databricks-Azure-SP-Management-Token:$azureApiToken"
-adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$adbId"
+adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID"
 
-d_curl() {
-    local db_url=${1:?Must provide an argument}
-    curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" --data-binary "@-" $db_url
-}
+echo "Delete ADB secret scope if already exists"
+j=$(echo $secret_scope_payload | curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" --data-binary "@-" "https://${ADB_WORKSPACE_URL}/api/2.0/secrets/scopes/delete")
 
-createSecretScopePayload="{
-        \"scope\": \"$DATABRICKS_SECRET_SCOPE\",
-        \"scope_backend_type\": \"AZURE_KEYVAULT\",
-        \"backend_azure_keyvault\":{\"resource_id\": \"$AKV_ID\",\"dns_name\": \"$AKV_URI\"},
-        \"initial_manage_principal\": \"users\"
-    }"
-echo $createSecretScopePayload | d_curl "https://${adbWorkspaceUrl}/api/2.0/secrets/scopes/delete"
 echo "Create ADB secret scope backed by Key Vault"
-echo $createSecretScopePayload | d_curl "https://${adbWorkspaceUrl}/api/2.0/secrets/scopes/create"
+json=$(echo $secret_scope_payload | curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" --data-binary "@-" "https://${ADB_WORKSPACE_URL}/api/2.0/secrets/scopes/create")
+
+# echo "$json" > "$AZ_SCRIPTS_OUTPUT_PATH"
+echo "$json" >> "$AZ_SCRIPTS_OUTPUT_PATH"

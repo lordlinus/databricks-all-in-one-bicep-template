@@ -1,4 +1,3 @@
-
 targetScope = 'subscription'
 
 @description('')
@@ -18,8 +17,9 @@ var firewallPublicIpName = '${substring(prefix, 0, 6)}FWPIp'
 var fwRoutingTable = '${substring(prefix, 0, 6)}AdbRoutingTbl'
 var clientPcName = '${substring(prefix, 0, 6)}ClientPc'
 var eHNameSpace = '${substring(prefix, 0, 6)}eh'
+var adbAkvLinkName = '${substring(prefix, 0, 6)}SecretScope'
 // creating the event hub same as namespace
-var eventHubName = eHNameSpace 
+var eventHubName = eHNameSpace
 
 @description('')
 param hubVnetName string
@@ -67,24 +67,32 @@ param FirewallSubnetCidr string
 @description('')
 param PrivateLinkSubnetCidr string
 
-
 module rg './resourcegroup/rg.template.bicep' = {
   scope: subscription()
   name: 'ResourceGroup'
   params: {
     location: location
-    resourceGroupName:resourceGroupName 
+    resourceGroupName: resourceGroupName
   }
-  
 }
 
+module myIdentity './other/managedIdentity.template.bicep' = {
+  scope: resourceGroup(resourceGroupName)
+  name: 'myIdentity'
+  params: {
+    location: location
+  }
+  dependsOn: [
+    rg
+  ]
+}
 module routeTable './network/routetable.template.bicep' = {
   scope: resourceGroup(resourceGroupName)
   name: 'RouteTable'
   params: {
     routeTableName: fwRoutingTable
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -94,7 +102,7 @@ module nsg './network/securitygroup.template.bicep' = {
   params: {
     securityGroupName: nsgName
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -113,7 +121,7 @@ module vnets './network/vnet.template.bicep' = {
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -126,7 +134,7 @@ module adb './databricks/workspace.template.bicep' = {
     adbWorkspaceSkuTier: 'premium'
     adbWorkspaceName: adbWorkspaceName
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -148,7 +156,7 @@ module hubFirewall './network/firewall.template.bicep' = {
     dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.${storageSuffix}')
     clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -159,7 +167,7 @@ module adlsGen2 './storage/storageaccount.template.bicep' = {
   params: {
     storageAccountName: storageAccountName
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -171,7 +179,7 @@ module keyVault './keyvault/keyvault.template.bicep' = {
     keyVaultName: keyVaultName
     objectId: userObjectId
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -194,7 +202,7 @@ module clientpc './other/clientdevice.template.bicep' = {
 module loganalytics './monitor/loganalytics.template.bicep' = {
   scope: resourceGroup(resourceGroupName)
   name: 'loganalytics'
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -205,7 +213,7 @@ module eventHubLogging './monitor/eventhub.template.bicep' = {
   params: {
     namespaceName: eHNameSpace
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -226,7 +234,7 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     targetSubResourceEventHub: 'namespace'
     vnetName: spokeVnetName
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -236,9 +244,14 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
   name: 'createDatabricksCluster'
   params: {
     location: location
-    pat_lifetime: '3600'
+    identity: myIdentity.outputs.mIdentityId
+    adb_pat_lifetime: '3600'
+    adb_workspace_url: adb.outputs.databricks_workspaceUrl
+    adb_workspace_id: adb.outputs.databricks_workspace_id
+    adb_secret_scope_name: adbAkvLinkName
+    akv_id: keyVault.outputs.keyvault_id
+    akv_uri: keyVault.outputs.keyvault_uri
   }
-  
 }
 
 module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
@@ -252,7 +265,7 @@ module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
     StorageAccountKey1: adlsGen2.outputs.key1
     StorageAccountKey2: adlsGen2.outputs.key2
   }
-  dependsOn:[
+  dependsOn: [
     rg
   ]
 }
@@ -274,4 +287,4 @@ output eHNamespaceId string = eventHubLogging.outputs.eHNamespaceId
 output eHubNameId string = eventHubLogging.outputs.eHubNameId
 output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 output eHPConnString string = eventHubLogging.outputs.eHPConnString
-output dsOutputs object = createDatabricksCluster.outputs.dsOutputs
+output dsOutputs object = createDatabricksCluster.outputs.patOutput
