@@ -66,5 +66,6 @@ resource keyVaultName_resource 'Microsoft.KeyVault/vaults@2019-09-01' = {
   tags: tagValues
 }
 
-output keyvault_id string = keyVaultName_resource.id
-output keyvault_uri string = keyVaultName_resource.properties.vaultUri
+output id string = keyVaultName_resource.id
+output name string = keyVaultName
+output uri string = keyVaultName_resource.properties.vaultUri

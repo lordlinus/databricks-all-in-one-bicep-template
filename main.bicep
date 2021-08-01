@@ -5,6 +5,9 @@ targetScope = 'subscription'
 param userObjectId string
 var storageSuffix = environment().suffixes.storage
 
+//=============================================================================
+// Name generation
+//=============================================================================
 @description('Auto generate prefix based on subscription')
 param prefix string = 'ss${uniqueString(guid(subscription().subscriptionId))}'
 
@@ -21,6 +24,9 @@ var eHNameSpace = '${substring(prefix, 0, 6)}eh'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace 
 
+//=============================================================================
+// Params
+//=============================================================================
 @description('')
 param hubVnetName string
 @description('')
@@ -67,6 +73,20 @@ param FirewallSubnetCidr string
 @description('')
 param PrivateLinkSubnetCidr string
 
+// Databricks params (note: keep as string, env vars only accept string)
+param adbClusterName string
+param adbSparkVersion string
+param adbNodeType string
+param adbNumWorkers string
+param adbAutoTerminateMinutes string
+param adbSparkConf string
+param adbInitConfig string
+param adbEnvVars string
+param adbClusterLog string
+
+//=============================================================================
+// Template modules
+//=============================================================================
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
   location: location
@@ -183,7 +203,7 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
   name: 'PrivateEndPoints'
   params: {
     keyvaultName: keyVault.name
-    keyvaultPrivateLinkResource: keyVault.outputs.keyvault_id
+    keyvaultPrivateLinkResource: keyVault.outputs.id
     privateLinkSubnetId: vnets.outputs.privatelinksubnet_id
     storageAccountName: adlsGen2.name
     storageAccountPrivateLinkResource: adlsGen2.outputs.storageaccount_id
@@ -194,18 +214,6 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     targetSubResourceEventHub: 'namespace'
     vnetName: spokeVnetName
   }
-}
-
-module createDatabricksCluster './databricks/deployment.template.bicep' = {
-  scope: rg
-  name: 'createDatabricksCluster'
-  params: {
-    location: location
-    pat_lifetime: '3600'
-  }
-  dependsOn:[
-    adb
-  ]
 }
 
 module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
@@ -221,6 +229,53 @@ module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
   }
 }
 
+//=============================================================================
+// Script modules
+//=============================================================================
+module getAuthTokensScript './deploymentScripts/getAuthTokens.deploy.bicep' = {
+  scope: rg
+  name: 'getAuthTokensScript'
+  params: {
+    location: location
+  }
+}
+
+module savePatToKeyVaultScript './deploymentScripts/savePatToKeyVault.deploy.bicep' = {
+  scope: rg
+  name: 'savePatToKeyVaultScript'
+  params: {
+    location: location
+    adbGlobalToken: getAuthTokensScript.outputs.adbGlobalToken
+    azureApiToken: getAuthTokensScript.outputs.azureApiToken
+    adbId: adb.outputs.databricks_workspace_id
+    adbWorkspaceUrl: adb.outputs.databricks_workspaceUrl
+    patLifetime: '3600'
+    akvName: keyVault.outputs.name
+  }
+}
+
+module createAdbClusterScript './deploymentScripts/createAdbCluster.deploy.bicep' = {
+  scope: rg
+  name: 'createAdbClusterScript'
+  params: {
+    location: location
+    adbGlobalToken: getAuthTokensScript.outputs.adbGlobalToken
+    azureApiToken: getAuthTokensScript.outputs.azureApiToken
+    adbClusterName: adbClusterName
+    adbSparkVersion: adbSparkVersion    
+    adbNodeType: adbNodeType
+    adbNumWorkers: adbNumWorkers
+    adbAutoTerminateMinutes: adbAutoTerminateMinutes
+    adbSparkConf: adbSparkConf
+    adbInitConfig: adbInitConfig
+    adbEnvVars: adbEnvVars
+    adbClusterLog: adbClusterLog
+  }
+}
+
+//=============================================================================
+// Outputs
+//=============================================================================
 output resourceGroupName string = rg.name
 output keyVaultName string = keyVaultName
 output adbWorkspaceName string = adbWorkspaceName
@@ -229,8 +284,8 @@ output storageKey1 string = adlsGen2.outputs.key1
 output storageKey2 string = adlsGen2.outputs.key2
 output databricksWksp string = adb.outputs.databricks_workspace_id
 output databricks_workspaceUrl string = adb.outputs.databricks_workspaceUrl
-output keyvault_id string = keyVault.outputs.keyvault_id
-output keyvault_uri string = keyVault.outputs.keyvault_uri
+output keyvault_id string = keyVault.outputs.id
+output keyvault_uri string = keyVault.outputs.uri
 output logAnalyticsWkspId string = loganalytics.outputs.logAnalyticsWkspId
 output logAnalyticsprimarySharedKey string = loganalytics.outputs.primarySharedKey
 output logAnalyticssecondarySharedKey string = loganalytics.outputs.secondarySharedKey
@@ -238,4 +293,4 @@ output eHNamespaceId string = eventHubLogging.outputs.eHNamespaceId
 output eHubNameId string = eventHubLogging.outputs.eHubNameId
 output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 output eHPConnString string = eventHubLogging.outputs.eHPConnString
-output dsOutputs object = createDatabricksCluster.outputs.dsOutputs
+//output dsOutputs object = createDatabricksCluster.outputs.dsOutputs

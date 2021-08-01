@@ -29,7 +29,7 @@ adbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-
 azureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)
 
 # Create Auth header for Databricks
-authHeader="Authorization: Bearer $adbGlobalToken"
+authHeader="Authorization: Bearer $ADB_GLOBAL_TOKEN"
 adbSPMgmtToken="X-Databricks-Azure-SP-Management-Token:$azureApiToken"
 adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$adbId"
 

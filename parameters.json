@@ -68,6 +68,33 @@
         "arprodseapa3.blob.core.windows.net",
         "dbartifactsprodeap.blob.core.windows.net"
       ]
+    },
+    "adbClusterName": {
+      "value": "test-cluster-01"
+    },
+    "adbSparkVersion": {
+      "value": "7.3.x-scala2.12"
+    },
+    "adbNodeType": {
+      "value": "Standard_D3_v2"
+    },
+    "adbNumWorkers": {
+      "value": "3"
+    },
+    "adbAutoTerminateMinutes": {
+      "value": "30"
+    },
+    "adbSparkConf": {
+      "value": "{\"spark.databricks.delta.preview.enabled\": \"true\", \"spark.eventLog.unknownRecord.maxSize\":\"16m\"}"
+    },
+    "adbInitConfig": {
+      "value": "{\"dbfs\": {\"destination\": \"dbfs:\/databricks\/init\/capture_log_metrics.sh\"}}"
+    },
+    "adbEnvVars": {
+      "value": "{ \"LOG_ANALYTICS_WORKSPACE_ID\": \"{{secrets\/'$DATABRICKS_SECRET_SCOPE'\/LogAWkspId}}\", \"LOG_ANALYTICS_WORKSPACE_KEY\": \"{{secrets\/'$DATABRICKS_SECRET_SCOPE'\/LogAWkspkey}}\" }"
+    },
+    "adbClusterLog": {
+      "value": "{ \"dbfs\": { \"destination\": \"dbfs:\/logs\" } }"
     }
   }
 }
