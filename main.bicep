@@ -128,6 +128,7 @@ module adb './databricks/workspace.template.bicep' = {
   }
   dependsOn:[
     rg
+    vnets
   ]
 }
 
