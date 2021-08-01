@@ -1,7 +1,5 @@
 targetScope = 'subscription'
 
-@description('')
-param userObjectId string
 var storageSuffix = environment().suffixes.storage
 
 @description('Auto generate prefix based on subscription')
@@ -32,13 +30,6 @@ param adminUsername string
 @description('')
 @secure()
 param adminPassword string
-
-// @allowed([
-//   'new'
-//   'existing'
-// ])
-// @description('')
-// param newOrExisting string = 'existing'
 
 @description('')
 param webappDestinationAddresses array
@@ -106,6 +97,7 @@ module nsg './network/securitygroup.template.bicep' = {
     rg
   ]
 }
+
 module vnets './network/vnet.template.bicep' = {
   scope: resourceGroup(resourceGroupName)
   name: 'HubandSpokeVNET'
@@ -154,7 +146,8 @@ module hubFirewall './network/firewall.template.bicep' = {
     eventHubEndpointDomains: eventHubEndpointDomain
     artifactBlobStoragePrimaryDomains: artifactBlobStoragePrimaryDomains
     dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.${storageSuffix}')
-    clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
+    // clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
+    clientPrivateIpAddr: '10.0.200.4'
   }
   dependsOn: [
     rg
@@ -177,7 +170,7 @@ module keyVault './keyvault/keyvault.template.bicep' = {
   name: 'KeyVault'
   params: {
     keyVaultName: keyVaultName
-    objectId: userObjectId
+    objectId: myIdentity.outputs.mIdentityClientId
   }
   dependsOn: [
     rg
@@ -245,46 +238,33 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
   params: {
     location: location
     identity: myIdentity.outputs.mIdentityId
-    adb_pat_lifetime: '3600'
     adb_workspace_url: adb.outputs.databricks_workspaceUrl
     adb_workspace_id: adb.outputs.databricks_workspace_id
     adb_secret_scope_name: adbAkvLinkName
     akv_id: keyVault.outputs.keyvault_id
     akv_uri: keyVault.outputs.keyvault_uri
-  }
-}
-
-module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
-  name: 'AddSecrets'
-  params: {
-    EventHubPK: eventHubLogging.outputs.eHPConnString
-    keyVaultName: keyVaultName
     LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
-    LogAWkspkey: loganalytics.outputs.primarySharedKey
-    StorageAccountKey1: adlsGen2.outputs.key1
-    StorageAccountKey2: adlsGen2.outputs.key2
+    LogAWkspKey: loganalytics.outputs.primarySharedKey
+    storageKey: adlsGen2.outputs.key1
+    evenHubKey: eventHubLogging.outputs.eHPConnString
   }
-  dependsOn: [
-    rg
-  ]
 }
 
-output resourceGroupName string = rg.name
-output keyVaultName string = keyVaultName
-output adbWorkspaceName string = adbWorkspaceName
-output storageAccountName string = storageAccountName
-output storageKey1 string = adlsGen2.outputs.key1
-output storageKey2 string = adlsGen2.outputs.key2
-output databricksWksp string = adb.outputs.databricks_workspace_id
-output databricks_workspaceUrl string = adb.outputs.databricks_workspaceUrl
-output keyvault_id string = keyVault.outputs.keyvault_id
-output keyvault_uri string = keyVault.outputs.keyvault_uri
-output logAnalyticsWkspId string = loganalytics.outputs.logAnalyticsWkspId
-output logAnalyticsprimarySharedKey string = loganalytics.outputs.primarySharedKey
-output logAnalyticssecondarySharedKey string = loganalytics.outputs.secondarySharedKey
-output eHNamespaceId string = eventHubLogging.outputs.eHNamespaceId
-output eHubNameId string = eventHubLogging.outputs.eHubNameId
-output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
-output eHPConnString string = eventHubLogging.outputs.eHPConnString
-output dsOutputs object = createDatabricksCluster.outputs.patOutput
+// output resourceGroupName string = rg.name
+// output keyVaultName string = keyVaultName
+// output adbWorkspaceName string = adbWorkspaceName
+// output storageAccountName string = storageAccountName
+// output storageKey1 string = adlsGen2.outputs.key1
+// output storageKey2 string = adlsGen2.outputs.key2
+// output databricksWksp string = adb.outputs.databricks_workspace_id
+// output databricks_workspaceUrl string = adb.outputs.databricks_workspaceUrl
+// output keyvault_id string = keyVault.outputs.keyvault_id
+// output keyvault_uri string = keyVault.outputs.keyvault_uri
+// output logAnalyticsWkspId string = loganalytics.outputs.logAnalyticsWkspId
+// output logAnalyticsprimarySharedKey string = loganalytics.outputs.primarySharedKey
+// output logAnalyticssecondarySharedKey string = loganalytics.outputs.secondarySharedKey
+// output eHNamespaceId string = eventHubLogging.outputs.eHNamespaceId
+// output eHubNameId string = eventHubLogging.outputs.eHubNameId
+// output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
+// output eHPConnString string = eventHubLogging.outputs.eHPConnString
+// output dsOutputs object = createDatabricksCluster.outputs.patOutput

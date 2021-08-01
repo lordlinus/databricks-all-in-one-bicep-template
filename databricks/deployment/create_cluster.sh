@@ -1,10 +1,6 @@
 #/bin/bash -e
+
 # Databricks cluster config variables
-DATABRICKS_CLUSTER_NAME="test-cluster-01-bicep"
-DATABRICKS_SPARK_VERSION="7.3.x-scala2.12"
-DATABRICKS_NODE_TYPE="Standard_D3_v2"
-DATABRICKS_NUM_WORKERS=3
-DATABRICKS_AUTO_TERMINATE_MINUTES=30
 DATABRICKS_SPARK_CONF='{
         "spark.databricks.delta.preview.enabled": "true",
         "spark.eventLog.unknownRecord.maxSize":"16m"
@@ -31,7 +27,7 @@ azureApiToken=$(az account get-access-token --resource https://management.core.w
 # Create Auth header for Databricks
 authHeader="Authorization: Bearer $adbGlobalToken"
 adbSPMgmtToken="X-Databricks-Azure-SP-Management-Token:$azureApiToken"
-adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$adbId"
+adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID"
 
 echo "Create Cluster"
 
@@ -46,6 +42,7 @@ CLUSTER_CREATE_JSON_STRING=$(jq -n -c \
     --arg ev "$DATABRICKS_ENV_VARS" \
     --arg cl "$DATABRICKS_CLUSTER_LOG" \
     '{cluster_name: $cn,
+                    idempotency_token: $cn,
                     spark_version: $sv,
                     node_type_id: $nt,
                     num_workers: ($nw|tonumber),
@@ -57,4 +54,4 @@ CLUSTER_CREATE_JSON_STRING=$(jq -n -c \
                     }')
 
 json=$(echo $CLUSTER_CREATE_JSON_STRING | curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" --data-binary "@-" "https://${ADB_WORKSPACE_URL}/api/2.0/clusters/create")
-echo "$json" > $AZ_SCRIPTS_OUTPUT_PATH
+echo "$json" >$AZ_SCRIPTS_OUTPUT_PATH

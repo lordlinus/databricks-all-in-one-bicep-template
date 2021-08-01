@@ -11,9 +11,8 @@ adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID"
 echo "Download init script"
 mkdir -p init_scripts && cd init_scripts
 curl -L \
--O "https://github.com/lordlinus/databricks-all-in-one-bicep-template/blob/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/init_scripts/capture_log_metrics.sh"
+    -O "https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/init_scripts/capture_log_metrics.sh"
 cd $USER_FOLDER
-
 
 echo "Upload init script to /databricks/init/capture_log_metrics.sh"
 curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" \
@@ -25,8 +24,8 @@ curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" \
 echo "Download Sample notebooks"
 mkdir -p notebooks && cd notebooks
 curl -L \
--O "https://github.com/lordlinus/databricks-all-in-one-bicep-template/blob/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/notebooks/azure_runner_docs_example.ipynb" \
--O "https://github.com/lordlinus/databricks-all-in-one-bicep-template/blob/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/notebooks/timezone_test.ipynb"
+    -O "https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/notebooks/azure_runner_docs_example.ipynb" \
+    -O "https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/notebooks/timezone_test.ipynb"
 cd $USER_FOLDER
 
 echo "Upload Sample notebooks"
@@ -45,8 +44,8 @@ done
 echo "Download Loganalytics jar files"
 mkdir -p jars && cd jars
 curl -L \
--O "https://github.com/lordlinus/databricks-all-in-one-bicep-template/blob/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar" \
--O "https://github.com/lordlinus/databricks-all-in-one-bicep-template/blob/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/jars/spark-listeners_3.0.1_2.12-1.0.0.jar"
+    -O "https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar" \
+    -O "https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/jars/spark-listeners_3.0.1_2.12-1.0.0.jar"
 cd $USER_FOLDER
 
 echo "Upload jar files"

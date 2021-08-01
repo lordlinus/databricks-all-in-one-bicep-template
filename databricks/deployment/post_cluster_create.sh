@@ -7,10 +7,7 @@ authHeader="Authorization: Bearer $adbGlobalToken"
 adbSPMgmtToken="X-Databricks-Azure-SP-Management-Token:$azureApiToken"
 adbResourceId="X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID"
 
-library_config=$(cat << EOF | envsubst | jq -c
-{
-    "cluster_id": "$ADB_CLUSTER_ID",
-    "libraries": [
+libraries='[
         {
                 "jar": "dbfs:/FileStore/jars/spark-listeners_3.0.1_2.12-1.0.0.jar"
         },
@@ -27,14 +24,21 @@ library_config=$(cat << EOF | envsubst | jq -c
                 "coordinates": "com.microsoft.azure:azure-eventhubs-spark_2.12:2.3.18"
             }
         }
-    ]
-}
-EOF
+    ]'
+
+library_config=$(
+    jq -n -c \
+        --arg aci "$ADB_CLUSTER_ID" \
+        --arg li "$libraries" \
+        '{
+      cluster_id: $aci,
+      libraries: ($li|fromjson)
+  }'
 )
 
 json=$(echo $library_config | curl -sS -X POST -H "$authHeader" -H "$adbSPMgmtToken" -H "$adbResourceId" --data-binary "@-" "https://${ADB_WORKSPACE_URL}/api/2.0/libraries/install")
 
-echo "$json" > "$AZ_SCRIPTS_OUTPUT_PATH"
+echo "$json" >"$AZ_SCRIPTS_OUTPUT_PATH"
 
 # echo "Create Overwatch Job"
 # JOB_CREATE_JSON_STRING=$(jq -n -c \
