@@ -67,39 +67,29 @@ param FirewallSubnetCidr string
 @description('')
 param PrivateLinkSubnetCidr string
 
-
-module rg './resourcegroup/rg.template.bicep' = {
-  scope: subscription()
-  name: 'ResourceGroup'
-  params: {
-    location: location
-    resourceGroupName:resourceGroupName 
-  }
-  
+resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: resourceGroupName
+  location: location
 }
 
 module routeTable './network/routetable.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'RouteTable'
   params: {
     routeTableName: fwRoutingTable
   }
-  dependsOn:[
-    rg
-  ]
 }
+
 module nsg './network/securitygroup.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'NetworkSecurityGroup'
   params: {
     securityGroupName: nsgName
   }
-  dependsOn:[
-    rg
-  ]
 }
+
 module vnets './network/vnet.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'HubandSpokeVNET'
   params: {
     hubVnetName: hubVnetName
@@ -113,13 +103,10 @@ module vnets './network/vnet.template.bicep' = {
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 module adb './databricks/workspace.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'DatabricksWorkspace'
   params: {
     vnetName: spokeVnetName
@@ -127,13 +114,12 @@ module adb './databricks/workspace.template.bicep' = {
     adbWorkspaceName: adbWorkspaceName
   }
   dependsOn:[
-    rg
     vnets
   ]
 }
 
 module hubFirewall './network/firewall.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'HubFirewall'
   params: {
     firewallName: firewallName
@@ -149,70 +135,51 @@ module hubFirewall './network/firewall.template.bicep' = {
     dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.${storageSuffix}')
     clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 module adlsGen2 './storage/storageaccount.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'StorageAccount'
   params: {
     storageAccountName: storageAccountName
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 module keyVault './keyvault/keyvault.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'KeyVault'
   params: {
     keyVaultName: keyVaultName
     objectId: userObjectId
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 module clientpc './other/clientdevice.template.bicep' = {
   name: 'ClientPC'
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   params: {
     adminUsername: adminUsername
     adminPassword: adminPassword
     vnetName: hubVnetName
     clientPcName: clientPcName
   }
-  dependsOn: [
-    rg
-    vnets
-  ]
 }
 
 module loganalytics './monitor/loganalytics.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'loganalytics'
-  dependsOn:[
-    rg
-  ]
 }
 
 module eventHubLogging './monitor/eventhub.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'EventHub'
   params: {
     namespaceName: eHNameSpace
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 module privateEndPoints './network/privateendpoint.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'PrivateEndPoints'
   params: {
     keyvaultName: keyVault.name
@@ -227,23 +194,22 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     targetSubResourceEventHub: 'namespace'
     vnetName: spokeVnetName
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 module createDatabricksCluster './databricks/deployment.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'createDatabricksCluster'
   params: {
     location: location
     pat_lifetime: '3600'
   }
-  
+  dependsOn:[
+    adb
+  ]
 }
 
 module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'AddSecrets'
   params: {
     EventHubPK: eventHubLogging.outputs.eHPConnString
@@ -253,9 +219,6 @@ module createAKVsecrets './keyvault/keyvaultsecrets.template.bicep' = {
     StorageAccountKey1: adlsGen2.outputs.key1
     StorageAccountKey2: adlsGen2.outputs.key2
   }
-  dependsOn:[
-    rg
-  ]
 }
 
 output resourceGroupName string = rg.name
