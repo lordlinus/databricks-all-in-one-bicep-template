@@ -12,17 +12,14 @@ unset username
 unset password
 
 read -p 'Client PC Username: ' username
-prompt="Client PC Password:"
-while IFS= read -p "$prompt" -r -s -n 1 char
-do
-    if [[ $char == $'\0' ]]
-    then
-        break
-    fi
-    prompt='*'
-    password+="$char"
+while true; do
+  read -s -p "Client PC Password: " password
+  echo
+  read -s -p "Client PC Password (again): " password2
+  echo
+  [ "$password" = "$password2" ] && break
+  echo "Please try again"
 done
-echo
 echo "Ok"
 
 echo "Running Bicep Main deployment file"
