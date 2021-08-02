@@ -21,7 +21,6 @@ echo "Running Bicep Main deployment file"
 bicep_output=$(az deployment sub create \
     --location "southeastasia" \
     --template-file main.bicep \
-    --parameters @parameters.json \
     --parameters adminUsername=$username \
     --parameters adminPassword=$password)
 

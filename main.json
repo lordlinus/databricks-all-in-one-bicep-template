@@ -5,34 +5,18 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.451.19169",
-      "templateHash": "9348225027727805257"
+      "templateHash": "4530228030041082684"
     }
   },
   "parameters": {
     "prefix": {
       "type": "string",
-      "defaultValue": "[format('ss{0}', uniqueString(guid(subscription().subscriptionId)))]",
+      "defaultValue": "ss",
       "metadata": {
-        "description": "Auto generate prefix based on subscription"
-      }
-    },
-    "hubVnetName": {
-      "type": "string",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "spokeVnetName": {
-      "type": "string",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "location": {
-      "type": "string",
-      "metadata": {
-        "description": ""
-      }
+        "description": "2-4 chars to prefix the Azure resources, NOTE: no number or symbols"
+      },
+      "maxLength": 4,
+      "minLength": 2
     },
     "adminUsername": {
       "type": "string",
@@ -42,159 +26,173 @@
     },
     "adminPassword": {
       "type": "secureString",
+      "minLength": 8,
       "metadata": {
         "description": ""
       }
     },
-    "webappDestinationAddresses": {
-      "type": "array",
+    "storageSuffix": {
+      "type": "string",
+      "defaultValue": "[environment().suffixes.storage]",
+      "metadata": {
+        "description": "Default storage suffix core"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "southeastasia",
+      "metadata": {
+        "description": "Default location of the resources"
+      }
+    },
+    "hubVnetName": {
+      "type": "string",
+      "defaultValue": "hubVnetName",
       "metadata": {
         "description": ""
       }
     },
-    "logBlobstorageDomains": {
-      "type": "array",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "extendedInfraIp": {
-      "type": "array",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "sccReplayDomain": {
-      "type": "array",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "metastoreDomains": {
-      "type": "array",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "eventHubEndpointDomain": {
-      "type": "array",
-      "metadata": {
-        "description": ""
-      }
-    },
-    "artifactBlobStoragePrimaryDomains": {
-      "type": "array",
+    "spokeVnetName": {
+      "type": "string",
+      "defaultValue": "spokevnet",
       "metadata": {
         "description": ""
       }
     },
     "SpokeVnetCidr": {
       "type": "string",
+      "defaultValue": "10.179.0.0/16",
       "metadata": {
         "description": ""
       }
     },
     "HubVnetCidr": {
       "type": "string",
+      "defaultValue": "10.0.0.0/16",
       "metadata": {
         "description": ""
       }
     },
     "PrivateSubnetCidr": {
       "type": "string",
+      "defaultValue": "10.179.0.0/18",
       "metadata": {
         "description": ""
       }
     },
     "PublicSubnetCidr": {
       "type": "string",
+      "defaultValue": "10.179.64.0/18",
       "metadata": {
         "description": ""
       }
     },
     "FirewallSubnetCidr": {
       "type": "string",
+      "defaultValue": "10.0.1.0/26",
       "metadata": {
         "description": ""
       }
     },
     "PrivateLinkSubnetCidr": {
       "type": "string",
+      "defaultValue": "10.179.128.0/26",
       "metadata": {
         "description": ""
+      }
+    },
+    "webappDestinationAddresses": {
+      "type": "array",
+      "defaultValue": [
+        "52.187.145.107/32",
+        "52.187.0.85/32"
+      ],
+      "metadata": {
+        "description": "Southeastasia ADB webapp address"
+      }
+    },
+    "logBlobstorageDomains": {
+      "type": "array",
+      "defaultValue": [
+        "[format('dblogprodseasia.blob.{0}', parameters('storageSuffix'))]"
+      ],
+      "metadata": {
+        "description": "Southeastasia ADB log blob"
+      }
+    },
+    "extendedInfraIp": {
+      "type": "array",
+      "defaultValue": [
+        "20.195.104.64/28"
+      ],
+      "metadata": {
+        "description": "Southeastasia ADB extended ip"
+      }
+    },
+    "sccReplayDomain": {
+      "type": "array",
+      "defaultValue": [
+        "tunnel.southeastasia.azuredatabricks.net"
+      ],
+      "metadata": {
+        "description": "Southeastasia SCC relay Domain"
+      }
+    },
+    "metastoreDomains": {
+      "type": "array",
+      "defaultValue": [
+        "consolidated-southeastasia-prod-metastore.mysql.database.azure.com"
+      ],
+      "metadata": {
+        "description": "Southeastasia SDB metastore"
+      }
+    },
+    "eventHubEndpointDomain": {
+      "type": "array",
+      "defaultValue": [
+        "prod-southeastasia-observabilityeventhubs.servicebus.windows.net"
+      ],
+      "metadata": {
+        "description": "Southeastasia EventHub endpoint"
+      }
+    },
+    "artifactBlobStoragePrimaryDomains": {
+      "type": "array",
+      "defaultValue": [
+        "[format('dbartifactsprodseap.blob.{0}', parameters('storageSuffix'))]",
+        "[format('arprodseapa1.blob.{0}', parameters('storageSuffix'))]",
+        "[format('arprodseapa2.blob.{0}', parameters('storageSuffix'))]",
+        "[format('arprodseapa3.blob.{0}', parameters('storageSuffix'))]",
+        "[format('dbartifactsprodeap.blob.{0}', parameters('storageSuffix'))]"
+      ],
+      "metadata": {
+        "description": "Southeastasia Artifacts Blob"
       }
     }
   },
   "functions": [],
   "variables": {
-    "storageSuffix": "[environment().suffixes.storage]",
-    "storageAccountName": "[format('{0}stg01', substring(parameters('prefix'), 0, 10))]",
-    "keyVaultName": "[format('{0}kv01', substring(parameters('prefix'), 0, 6))]",
-    "resourceGroupName": "[format('{0}-rg', substring(parameters('prefix'), 0, 6))]",
-    "adbWorkspaceName": "[format('{0}AdbWksp', substring(parameters('prefix'), 0, 6))]",
-    "nsgName": "[format('{0}nsg', substring(parameters('prefix'), 0, 6))]",
-    "firewallName": "[format('{0}HubFW', substring(parameters('prefix'), 0, 6))]",
-    "firewallPublicIpName": "[format('{0}FWPIp', substring(parameters('prefix'), 0, 6))]",
-    "fwRoutingTable": "[format('{0}AdbRoutingTbl', substring(parameters('prefix'), 0, 6))]",
-    "clientPcName": "[format('{0}ClientPc', substring(parameters('prefix'), 0, 6))]",
-    "eHNameSpace": "[format('{0}eh', substring(parameters('prefix'), 0, 6))]",
-    "adbAkvLinkName": "[format('{0}SecretScope', substring(parameters('prefix'), 0, 6))]",
+    "uniqueSubString": "[uniqueString(guid(subscription().subscriptionId))]",
+    "uString": "[format('{0}{1}', parameters('prefix'), variables('uniqueSubString'))]",
+    "storageAccountName": "[format('{0}stg01', substring(variables('uString'), 0, 10))]",
+    "keyVaultName": "[format('{0}kv01', substring(variables('uString'), 0, 6))]",
+    "resourceGroupName": "[format('{0}-rg', substring(variables('uString'), 0, 6))]",
+    "adbWorkspaceName": "[format('{0}AdbWksp', substring(variables('uString'), 0, 6))]",
+    "nsgName": "[format('{0}nsg', substring(variables('uString'), 0, 6))]",
+    "firewallName": "[format('{0}HubFW', substring(variables('uString'), 0, 6))]",
+    "firewallPublicIpName": "[format('{0}FWPIp', substring(variables('uString'), 0, 6))]",
+    "fwRoutingTable": "[format('{0}AdbRoutingTbl', substring(variables('uString'), 0, 6))]",
+    "clientPcName": "[format('{0}ClientPc', substring(variables('uString'), 0, 6))]",
+    "eHNameSpace": "[format('{0}eh', substring(variables('uString'), 0, 6))]",
+    "adbAkvLinkName": "[format('{0}SecretScope', substring(variables('uString'), 0, 6))]",
     "eventHubName": "[variables('eHNameSpace')]"
   },
   "resources": [
     {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2019-10-01",
-      "name": "ResourceGroup",
-      "location": "[deployment().location]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "resourceGroupName": {
-            "value": "[variables('resourceGroupName')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.4.451.19169",
-              "templateHash": "11683001232085394107"
-            }
-          },
-          "parameters": {
-            "resourceGroupName": {
-              "type": "string"
-            },
-            "location": {
-              "type": "string"
-            }
-          },
-          "functions": [],
-          "resources": [
-            {
-              "type": "Microsoft.Resources/resourceGroups",
-              "apiVersion": "2021-04-01",
-              "name": "[parameters('resourceGroupName')]",
-              "location": "[parameters('location')]"
-            }
-          ],
-          "outputs": {
-            "rgName": {
-              "type": "string",
-              "value": "[parameters('resourceGroupName')]"
-            }
-          }
-        }
-      }
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupName')]",
+      "location": "[parameters('location')]"
     },
     {
       "type": "Microsoft.Resources/deployments",
@@ -264,7 +262,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -342,7 +340,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -491,7 +489,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -798,7 +796,7 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'NetworkSecurityGroup')]",
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'RouteTable')]"
       ]
     },
@@ -944,7 +942,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -989,7 +987,7 @@
             "value": "[parameters('artifactBlobStoragePrimaryDomains')]"
           },
           "dbfsBlobStrageDomain": {
-            "value": "[array(format('{0}.blob.{1}', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_dbfs_storage_accountName.value, variables('storageSuffix')))]"
+            "value": "[array(format('{0}.blob.{1}', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_dbfs_storage_accountName.value, parameters('storageSuffix')))]"
           },
           "clientPrivateIpAddr": {
             "value": "10.0.200.4"
@@ -1453,7 +1451,7 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace')]",
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -1587,7 +1585,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -1735,7 +1733,7 @@
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity')]",
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -1916,7 +1914,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET')]"
       ]
     },
@@ -2194,7 +2192,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -2316,7 +2314,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -2669,7 +2667,7 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault')]",
-        "[subscriptionResourceId('Microsoft.Resources/deployments', 'ResourceGroup')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET')]"
       ]
     },
@@ -3024,7 +3022,8 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'loganalytics')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     }
   ]

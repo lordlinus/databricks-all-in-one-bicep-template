@@ -1,105 +1,118 @@
 targetScope = 'subscription'
 
-var storageSuffix = environment().suffixes.storage
+@minLength(2)
+@maxLength(4)
+@description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
+param prefix string = 'ss'
 
-@description('Auto generate prefix based on subscription')
-param prefix string = 'ss${uniqueString(guid(subscription().subscriptionId))}'
-
-var storageAccountName = '${substring(prefix, 0, 10)}stg01'
-var keyVaultName = '${substring(prefix, 0, 6)}kv01'
-var resourceGroupName = '${substring(prefix, 0, 6)}-rg'
-var adbWorkspaceName = '${substring(prefix, 0, 6)}AdbWksp'
-var nsgName = '${substring(prefix, 0, 6)}nsg'
-var firewallName = '${substring(prefix, 0, 6)}HubFW'
-var firewallPublicIpName = '${substring(prefix, 0, 6)}FWPIp'
-var fwRoutingTable = '${substring(prefix, 0, 6)}AdbRoutingTbl'
-var clientPcName = '${substring(prefix, 0, 6)}ClientPc'
-var eHNameSpace = '${substring(prefix, 0, 6)}eh'
-var adbAkvLinkName = '${substring(prefix, 0, 6)}SecretScope'
-// creating the event hub same as namespace
-var eventHubName = eHNameSpace
-
-@description('')
-param hubVnetName string
-@description('')
-param spokeVnetName string
-@description('')
-param location string
 @description('')
 param adminUsername string
+
 @description('')
+@minLength(8)
 @secure()
 param adminPassword string
 
-@description('')
-param webappDestinationAddresses array
-@description('')
-param logBlobstorageDomains array
-@description('')
-param extendedInfraIp array
-@description('')
-param sccReplayDomain array
-@description('')
-param metastoreDomains array
-@description('')
-param eventHubEndpointDomain array
-@description('')
-param artifactBlobStoragePrimaryDomains array
-@description('')
-param SpokeVnetCidr string
-@description('')
-param HubVnetCidr string
-@description('')
-param PrivateSubnetCidr string
-@description('')
-param PublicSubnetCidr string
-@description('')
-param FirewallSubnetCidr string
-@description('')
-param PrivateLinkSubnetCidr string
+var uniqueSubString = '${uniqueString(guid(subscription().subscriptionId))}'
+var uString = '${prefix}${uniqueSubString}'
+@description('Default storage suffix core')
+param storageSuffix string = environment().suffixes.storage
 
-module rg './resourcegroup/rg.template.bicep' = {
-  scope: subscription()
-  name: 'ResourceGroup'
-  params: {
-    location: location
-    resourceGroupName: resourceGroupName
-  }
+var storageAccountName = '${substring(uString, 0, 10)}stg01'
+var keyVaultName = '${substring(uString, 0, 6)}kv01'
+var resourceGroupName = '${substring(uString, 0, 6)}-rg'
+var adbWorkspaceName = '${substring(uString, 0, 6)}AdbWksp'
+var nsgName = '${substring(uString, 0, 6)}nsg'
+var firewallName = '${substring(uString, 0, 6)}HubFW'
+var firewallPublicIpName = '${substring(uString, 0, 6)}FWPIp'
+var fwRoutingTable = '${substring(uString, 0, 6)}AdbRoutingTbl'
+var clientPcName = '${substring(uString, 0, 6)}ClientPc'
+var eHNameSpace = '${substring(uString, 0, 6)}eh'
+var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
+// creating the event hub same as namespace
+var eventHubName = eHNameSpace
+
+@description('Default location of the resources')
+param location string = 'southeastasia'
+@description('')
+param hubVnetName string = 'hubVnetName'
+@description('')
+param spokeVnetName string = 'spokevnet'
+@description('')
+param SpokeVnetCidr string = '10.179.0.0/16'
+@description('')
+param HubVnetCidr string = '10.0.0.0/16'
+@description('')
+param PrivateSubnetCidr string = '10.179.0.0/18'
+@description('')
+param PublicSubnetCidr string = '10.179.64.0/18'
+@description('')
+param FirewallSubnetCidr string = '10.0.1.0/26'
+@description('')
+param PrivateLinkSubnetCidr string = '10.179.128.0/26'
+
+@description('Southeastasia ADB webapp address')
+param webappDestinationAddresses array = [
+  '52.187.145.107/32'
+  '52.187.0.85/32'
+]
+@description('Southeastasia ADB log blob')
+param logBlobstorageDomains array = [
+  'dblogprodseasia.blob.${storageSuffix}'
+]
+@description('Southeastasia ADB extended ip')
+param extendedInfraIp array = [
+  '20.195.104.64/28'
+]
+@description('Southeastasia SCC relay Domain')
+param sccReplayDomain array = [
+  'tunnel.southeastasia.azuredatabricks.net'
+]
+@description('Southeastasia SDB metastore')
+param metastoreDomains array = [
+  'consolidated-southeastasia-prod-metastore.mysql.database.azure.com'
+]
+@description('Southeastasia EventHub endpoint')
+param eventHubEndpointDomain array = [
+  'prod-southeastasia-observabilityeventhubs.servicebus.windows.net'
+]
+@description('Southeastasia Artifacts Blob')
+param artifactBlobStoragePrimaryDomains array = [
+  'dbartifactsprodseap.blob.${storageSuffix}'
+  'arprodseapa1.blob.${storageSuffix}'
+  'arprodseapa2.blob.${storageSuffix}'
+  'arprodseapa3.blob.${storageSuffix}'
+  'dbartifactsprodeap.blob.${storageSuffix}'
+]
+resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+  name: resourceGroupName
+  location: location
 }
 
 module myIdentity './other/managedIdentity.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'myIdentity'
   params: {
     location: location
   }
-  dependsOn: [
-    rg
-  ]
 }
 module routeTable './network/routetable.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'RouteTable'
   params: {
     routeTableName: fwRoutingTable
   }
-  dependsOn: [
-    rg
-  ]
 }
 module nsg './network/securitygroup.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'NetworkSecurityGroup'
   params: {
     securityGroupName: nsgName
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module vnets './network/vnet.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'HubandSpokeVNET'
   params: {
     hubVnetName: hubVnetName
@@ -113,26 +126,20 @@ module vnets './network/vnet.template.bicep' = {
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module adb './databricks/workspace.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'DatabricksWorkspace'
   params: {
     vnetName: spokeVnetName
     adbWorkspaceSkuTier: 'premium'
     adbWorkspaceName: adbWorkspaceName
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module hubFirewall './network/firewall.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'HubFirewall'
   params: {
     firewallName: firewallName
@@ -149,37 +156,28 @@ module hubFirewall './network/firewall.template.bicep' = {
     // clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
     clientPrivateIpAddr: '10.0.200.4'
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module adlsGen2 './storage/storageaccount.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'StorageAccount'
   params: {
     storageAccountName: storageAccountName
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module keyVault './keyvault/keyvault.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'KeyVault'
   params: {
     keyVaultName: keyVaultName
     objectId: myIdentity.outputs.mIdentityClientId
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module clientpc './other/clientdevice.template.bicep' = {
   name: 'ClientPC'
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   params: {
     adminUsername: adminUsername
     adminPassword: adminPassword
@@ -193,26 +191,20 @@ module clientpc './other/clientdevice.template.bicep' = {
 }
 
 module loganalytics './monitor/loganalytics.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'loganalytics'
-  dependsOn: [
-    rg
-  ]
 }
 
 module eventHubLogging './monitor/eventhub.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'EventHub'
   params: {
     namespaceName: eHNameSpace
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module privateEndPoints './network/privateendpoint.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'PrivateEndPoints'
   params: {
     keyvaultName: keyVault.name
@@ -227,13 +219,10 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     targetSubResourceEventHub: 'namespace'
     vnetName: spokeVnetName
   }
-  dependsOn: [
-    rg
-  ]
 }
 
 module createDatabricksCluster './databricks/deployment.template.bicep' = {
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   name: 'createDatabricksCluster'
   params: {
     location: location
