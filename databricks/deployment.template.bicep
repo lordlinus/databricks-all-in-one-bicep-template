@@ -20,8 +20,8 @@ param storageKey string
 @secure()
 param evenHubKey string
 
-resource adbPATToken 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'adbPATToken'
+resource createAdbPATToken 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'createAdbPATToken'
   location: location
   kind: 'AzureCLI'
   identity: {
@@ -107,7 +107,7 @@ resource secretScopeLink 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       }
       {
         name: 'ADB_PAT_TOKEN'
-        value: adbPATToken.properties.outputs.token_value
+        value: createAdbPATToken.properties.outputs.token_value
       }
     ]
     scriptContent: loadTextContent('deployment/create_secret_scope.sh')
@@ -144,7 +144,7 @@ resource uploadFilesToAdb 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
 }
 
 resource createAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'createCluster'
+  name: 'createAdbCluster'
   location: location
   kind: 'AzureCLI'
   identity: {
@@ -195,10 +195,14 @@ resource createAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     ]
     scriptContent: loadTextContent('deployment/create_cluster.sh')
   }
+  dependsOn: [
+    secretScopeLink
+    uploadFilesToAdb
+  ]
 }
 
 resource configAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
-  name: 'configCluster'
+  name: 'configAdbCluster'
   location: location
   kind: 'AzureCLI'
   identity: {
@@ -229,6 +233,9 @@ resource configAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     ]
     scriptContent: loadTextContent('deployment/post_cluster_create.sh')
   }
+  dependsOn:[
+    createAdbCluster
+  ]
 }
 
 // output patOutput object = adbPATToken.properties

@@ -5,10 +5,10 @@ targetScope = 'subscription'
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
 param prefix string = 'ss'
 
-@description('')
+@description('Client PC username, NOTE: do not use admin')
 param adminUsername string
 
-@description('')
+@description('Client PC password, with atleast 8 char length containing uppercase, digits and special characters ')
 @minLength(8)
 @secure()
 param adminPassword string
@@ -31,6 +31,7 @@ var eHNameSpace = '${substring(uString, 0, 6)}eh'
 var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace
+var managedIdentityName = '${substring(uString, 0, 6)}Identity'
 
 @description('Default location of the resources')
 param location string = 'southeastasia'
@@ -84,6 +85,7 @@ param artifactBlobStoragePrimaryDomains array = [
   'arprodseapa3.blob.${storageSuffix}'
   'dbartifactsprodeap.blob.${storageSuffix}'
 ]
+
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
   location: location
@@ -93,6 +95,7 @@ module myIdentity './other/managedIdentity.template.bicep' = {
   scope: rg
   name: 'myIdentity'
   params: {
+    managedIdentityName: managedIdentityName
     location: location
   }
 }
