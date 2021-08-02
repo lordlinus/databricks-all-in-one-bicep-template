@@ -64,7 +64,6 @@ resource storageAccountPrivateEndpointName 'Microsoft.Network/privateEndpoints@2
   }
   tags: {}
 }
-
 resource privateDnsNameStorage 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: privateDnsNameStorage_var
   location: 'global'
@@ -74,7 +73,6 @@ resource privateDnsNameStorage 'Microsoft.Network/privateDnsZones@2020-06-01' = 
     storageAccountPrivateEndpointName
   ]
 }
-
 resource privateDnsNameStorage_vnetName 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: privateDnsNameStorage
   name: vnetName
@@ -86,7 +84,6 @@ resource privateDnsNameStorage_vnetName 'Microsoft.Network/privateDnsZones/virtu
     registrationEnabled: false
   }
 }
-
 resource storageAccountPrivateEndpointName_default 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-02-01' = {
   parent: storageAccountPrivateEndpointName
   name: 'default'
@@ -123,7 +120,6 @@ resource keyvaultPrivateEndpointName 'Microsoft.Network/privateEndpoints@2021-02
   }
   tags: {}
 }
-
 resource privateDnsNameVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: privateDnsNameVault_var
   location: 'global'
@@ -133,7 +129,6 @@ resource privateDnsNameVault 'Microsoft.Network/privateDnsZones@2020-06-01' = {
     keyvaultPrivateEndpointName
   ]
 }
-
 resource privateDnsNameVault_vnetName 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   parent: privateDnsNameVault
   name: vnetName
@@ -145,7 +140,6 @@ resource privateDnsNameVault_vnetName 'Microsoft.Network/privateDnsZones/virtual
     registrationEnabled: false
   }
 }
-
 resource keyvaultPrivateEndpointName_default 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-02-01' = {
   parent: keyvaultPrivateEndpointName
   name: 'default'
@@ -201,7 +195,6 @@ resource privateDnsNameEventHub 'Microsoft.Network/privateDnsZones@2020-06-01' =
     eventHubPrivateEndpointName
   ]
 }
-
 resource eventHubPrivateEndpointName_default 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-02-01' = {
   parent: eventHubPrivateEndpointName
   name: 'default'
