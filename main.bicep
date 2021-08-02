@@ -99,6 +99,7 @@ module myIdentity './other/managedIdentity.template.bicep' = {
     location: location
   }
 }
+
 module routeTable './network/routetable.template.bicep' = {
   scope: rg
   name: 'RouteTable'
@@ -106,6 +107,7 @@ module routeTable './network/routetable.template.bicep' = {
     routeTableName: fwRoutingTable
   }
 }
+
 module nsg './network/securitygroup.template.bicep' = {
   scope: rg
   name: 'NetworkSecurityGroup'
@@ -139,6 +141,9 @@ module adb './databricks/workspace.template.bicep' = {
     adbWorkspaceSkuTier: 'premium'
     adbWorkspaceName: adbWorkspaceName
   }
+  dependsOn:[
+    vnets
+  ]
 }
 
 module hubFirewall './network/firewall.template.bicep' = {
@@ -187,10 +192,6 @@ module clientpc './other/clientdevice.template.bicep' = {
     vnetName: hubVnetName
     clientPcName: clientPcName
   }
-  dependsOn: [
-    rg
-    vnets
-  ]
 }
 
 module loganalytics './monitor/loganalytics.template.bicep' = {

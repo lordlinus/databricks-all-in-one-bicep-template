@@ -20,21 +20,26 @@ param storageKey string
 @secure()
 param evenHubKey string
 
+var commonIdentity = {
+  type: 'UserAssigned'
+  userAssignedIdentities: {
+    '${identity}': {}
+  }
+}
+
+var baseProperties = {
+  azCliVersion: '2.26.0'
+  timeout: 'PT5M'
+  cleanupPreference: 'OnExpiration'
+  retentionInterval: 'PT1H'
+}
+
 resource createAdbPATToken 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'createAdbPATToken'
   location: location
   kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity}': {}
-    }
-  }
-  properties: {
-    azCliVersion: '2.26.0'
-    timeout: 'PT5M'
-    cleanupPreference: 'OnExpiration'
-    retentionInterval: 'PT1H'
+  identity: commonIdentity
+  properties: union(baseProperties, {
     environmentVariables: [
       {
         name: 'ADB_WORKSPACE_URL'
@@ -50,24 +55,15 @@ resource createAdbPATToken 'Microsoft.Resources/deploymentScripts@2020-10-01' = 
       }
     ]
     scriptContent: loadTextContent('deployment/create_pat.sh')
-  }
+  })
 }
 
 resource secretScopeLink 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'secretScopeLink'
   location: location
   kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity}': {}
-    }
-  }
-  properties: {
-    azCliVersion: '2.26.0'
-    timeout: 'PT5M'
-    cleanupPreference: 'OnExpiration'
-    retentionInterval: 'PT1H'
+  identity: commonIdentity
+  properties: union(baseProperties, {
     environmentVariables: [
       {
         name: 'ADB_WORKSPACE_URL'
@@ -111,24 +107,15 @@ resource secretScopeLink 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       }
     ]
     scriptContent: loadTextContent('deployment/create_secret_scope.sh')
-  }
+  })
 }
 
 resource uploadFilesToAdb 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'uploadFilesToAdb'
   location: location
   kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity}': {}
-    }
-  }
-  properties: {
-    azCliVersion: '2.26.0'
-    timeout: 'PT5M'
-    cleanupPreference: 'OnExpiration'
-    retentionInterval: 'PT1H'
+  identity: commonIdentity
+  properties: union(baseProperties, {
     environmentVariables: [
       {
         name: 'ADB_WORKSPACE_URL'
@@ -140,24 +127,15 @@ resource uploadFilesToAdb 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       }
     ]
     scriptContent: loadTextContent('deployment/pre_cluster_create.sh')
-  }
+  })
 }
 
 resource createAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'createAdbCluster'
   location: location
   kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity}': {}
-    }
-  }
-  properties: {
-    azCliVersion: '2.26.0'
-    timeout: 'PT5M'
-    retentionInterval: 'PT1H'
-    cleanupPreference: 'OnExpiration'
+  identity: commonIdentity
+  properties: union(baseProperties, {
     forceUpdateTag: force_update
     environmentVariables: [
       {
@@ -194,7 +172,7 @@ resource createAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       }
     ]
     scriptContent: loadTextContent('deployment/create_cluster.sh')
-  }
+  })
   dependsOn: [
     secretScopeLink
     uploadFilesToAdb
@@ -205,18 +183,8 @@ resource configAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'configAdbCluster'
   location: location
   kind: 'AzureCLI'
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity}': {}
-    }
-  }
-  properties: {
-    azCliVersion: '2.26.0'
-    timeout: 'PT5M'
-    retentionInterval: 'PT1H'
-    cleanupPreference: 'OnExpiration'
-    forceUpdateTag: force_update
+  identity: commonIdentity
+  properties: union(baseProperties, {
     environmentVariables: [
       {
         name: 'ADB_WORKSPACE_URL'
@@ -232,7 +200,7 @@ resource configAdbCluster 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
       }
     ]
     scriptContent: loadTextContent('deployment/post_cluster_create.sh')
-  }
+  })
   dependsOn:[
     createAdbCluster
   ]
