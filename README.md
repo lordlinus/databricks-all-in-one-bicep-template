@@ -38,8 +38,8 @@ More resources available at this [Link](https://docs.microsoft.com/en-us/azure/a
 * Firewall with UDR to allow only required Databricks endpoints. [Link](https://docs.microsoft.com/en-us/azure/virtual-network/manage-network-security-group)
 * Storage account with Private endpoint. [Link](https://docs.microsoft.com/en-us/azure/storage/common/storage-private-endpoints)
 * Azure Key Vault with Private endpoint. [Link](https://docs.microsoft.com/en-us/azure/private-link/private-endpoint-overview)
+* Create Databricks backed secret scope.
 * Azure Event Hub with Private endpoint. [Link](https://docs.microsoft.com/en-us/azure/event-hubs/private-link-service)
-* Create Databricks secret scope backed by Azure Key Vault. [Link](https://docs.microsoft.com/en-us/azure/databricks/security/secrets/secret-scopes)
 * Create cluster with cluster logging and init script for monitoring.[Link](https://docs.microsoft.com/en-us/azure/databricks/clusters/init-scripts)
 * Sample Databricks notebooks into workspace.
 * Secured Windows Virtual machine with RDP (Protect data from export).[Link]
@@ -50,6 +50,7 @@ More resources available at this [Link](https://docs.microsoft.com/en-us/azure/a
 
 ## To Do
 
+* Create Databricks secret scope backed by Azure Key Vault. [Link](https://docs.microsoft.com/en-us/azure/databricks/security/secrets/secret-scopes) 
 * Create Azure SQL with Private link
 * Create and Link Azure ML workspace
 * Create an integrated ADF pipeline
