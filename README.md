@@ -78,6 +78,15 @@ The supplied password must be between 8-123 characters long and must satisfy at 
 To clone and run this repo, you'll need [Git](https://git-scm.com), [Bicep](https://github.com/Azure/bicep/blob/main/docs/installing.md) and [azure-cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) installed on your computer. Strongly recommend to use vs code to edit the file with bicep extension installed ([instructions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)) for intellisense and other completions.
 From your command line:
 
+### Option 1:
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Flordlinus%2Fdatabricks-all-in-one-bicep-template%2Fmain%2Fmain.json)
+
+Click on the above link to deploy the template.
+
+### Option 2
+
+If you need to customize the template you can use the following command:
+
 ```bash
 # Clone this repository
 $ git clone https://github.com/lordlinus/databricks-all-in-one-bicep-template.git
@@ -85,9 +94,9 @@ $ git clone https://github.com/lordlinus/databricks-all-in-one-bicep-template.gi
 # Go into the repository
 $ cd databricks-all-in-one-bicep-template
 
-# Update parameters.json file with variables as required. Default is for southeast region.
+# Update main.bicep file with variables as required. Default is for southeastasia region.
 # Refer to Azure Databricks UDR section under References for region specific parameters.
-$ code parameters.json
+$ code main.bicep
 
 # Run the build shell script to create the resources
 $ ./build.sh
