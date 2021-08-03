@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.451.19169",
-      "templateHash": "11165368864799555966"
+      "templateHash": "3017137578883143151"
     }
   },
   "parameters": {
@@ -29,13 +29,6 @@
       "minLength": 8,
       "metadata": {
         "description": "Client PC password, with atleast 8 char length containing uppercase, digits and special characters "
-      }
-    },
-    "storageSuffix": {
-      "type": "string",
-      "defaultValue": "[environment().suffixes.storage]",
-      "metadata": {
-        "description": "Default storage suffix core"
       }
     },
     "location": {
@@ -114,7 +107,7 @@
     "logBlobstorageDomains": {
       "type": "array",
       "defaultValue": [
-        "[format('dblogprodseasia.blob.{0}', parameters('storageSuffix'))]"
+        "dblogprodseasia.blob.core.windows.net"
       ],
       "metadata": {
         "description": "Southeastasia ADB log blob"
@@ -159,11 +152,11 @@
     "artifactBlobStoragePrimaryDomains": {
       "type": "array",
       "defaultValue": [
-        "[format('dbartifactsprodseap.blob.{0}', parameters('storageSuffix'))]",
-        "[format('arprodseapa1.blob.{0}', parameters('storageSuffix'))]",
-        "[format('arprodseapa2.blob.{0}', parameters('storageSuffix'))]",
-        "[format('arprodseapa3.blob.{0}', parameters('storageSuffix'))]",
-        "[format('dbartifactsprodeap.blob.{0}', parameters('storageSuffix'))]"
+        "dbartifactsprodseap.blob.core.windows.net",
+        "arprodseapa1.blob.core.windows.net",
+        "arprodseapa2.blob.core.windows.net",
+        "arprodseapa3.blob.core.windows.net",
+        "dbartifactsprodeap.blob.core.windows.net"
       ],
       "metadata": {
         "description": "Southeastasia Artifacts Blob"
@@ -995,7 +988,7 @@
             "value": "[parameters('artifactBlobStoragePrimaryDomains')]"
           },
           "dbfsBlobStrageDomain": {
-            "value": "[array(format('{0}.blob.{1}', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_dbfs_storage_accountName.value, parameters('storageSuffix')))]"
+            "value": "[array(format('{0}.blob.core.windows.net', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_dbfs_storage_accountName.value))]"
           },
           "clientPrivateIpAddr": {
             "value": "10.0.200.4"

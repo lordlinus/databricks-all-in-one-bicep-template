@@ -15,8 +15,9 @@ param adminPassword string
 
 var uniqueSubString = '${uniqueString(guid(subscription().subscriptionId))}'
 var uString = '${prefix}${uniqueSubString}'
-@description('Default storage suffix core')
-param storageSuffix string = environment().suffixes.storage
+
+// @description('Default storage suffix core - core.windows.net')
+// var storageSuffix = environment().suffixes.storage
 
 var storageAccountName = '${substring(uString, 0, 10)}stg01'
 var keyVaultName = '${substring(uString, 0, 6)}kv01'
@@ -59,7 +60,7 @@ param webappDestinationAddresses array = [
 ]
 @description('Southeastasia ADB log blob')
 param logBlobstorageDomains array = [
-  'dblogprodseasia.blob.${storageSuffix}'
+  'dblogprodseasia.blob.core.windows.net'
 ]
 @description('Southeastasia ADB extended ip')
 param extendedInfraIp array = [
@@ -79,11 +80,11 @@ param eventHubEndpointDomain array = [
 ]
 @description('Southeastasia Artifacts Blob')
 param artifactBlobStoragePrimaryDomains array = [
-  'dbartifactsprodseap.blob.${storageSuffix}'
-  'arprodseapa1.blob.${storageSuffix}'
-  'arprodseapa2.blob.${storageSuffix}'
-  'arprodseapa3.blob.${storageSuffix}'
-  'dbartifactsprodeap.blob.${storageSuffix}'
+  'dbartifactsprodseap.blob.core.windows.net'
+  'arprodseapa1.blob.core.windows.net'
+  'arprodseapa2.blob.core.windows.net'
+  'arprodseapa3.blob.core.windows.net'
+  'dbartifactsprodeap.blob.core.windows.net'
 ]
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -160,7 +161,7 @@ module hubFirewall './network/firewall.template.bicep' = {
     metastoreDomains: metastoreDomains
     eventHubEndpointDomains: eventHubEndpointDomain
     artifactBlobStoragePrimaryDomains: artifactBlobStoragePrimaryDomains
-    dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.${storageSuffix}')
+    dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.core.windows.net')
     // clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
     clientPrivateIpAddr: '10.0.200.4'
   }
