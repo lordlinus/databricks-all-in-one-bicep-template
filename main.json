@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.451.19169",
-      "templateHash": "4530228030041082684"
+      "templateHash": "11165368864799555966"
     }
   },
   "parameters": {
@@ -21,14 +21,14 @@
     "adminUsername": {
       "type": "string",
       "metadata": {
-        "description": ""
+        "description": "Client PC username, NOTE: do not use admin"
       }
     },
     "adminPassword": {
       "type": "secureString",
       "minLength": 8,
       "metadata": {
-        "description": ""
+        "description": "Client PC password, with atleast 8 char length containing uppercase, digits and special characters "
       }
     },
     "storageSuffix": {
@@ -185,7 +185,8 @@
     "clientPcName": "[format('{0}ClientPc', substring(variables('uString'), 0, 6))]",
     "eHNameSpace": "[format('{0}eh', substring(variables('uString'), 0, 6))]",
     "adbAkvLinkName": "[format('{0}SecretScope', substring(variables('uString'), 0, 6))]",
-    "eventHubName": "[variables('eHNameSpace')]"
+    "eventHubName": "[variables('eHNameSpace')]",
+    "managedIdentityName": "[format('{0}Identity', substring(variables('uString'), 0, 6))]"
   },
   "resources": [
     {
@@ -205,6 +206,9 @@
         },
         "mode": "Incremental",
         "parameters": {
+          "managedIdentityName": {
+            "value": "[variables('managedIdentityName')]"
+          },
           "location": {
             "value": "[parameters('location')]"
           }
@@ -216,47 +220,50 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "10363835566345007611"
+              "templateHash": "291692352024343909"
             }
           },
           "parameters": {
             "location": {
               "type": "string"
+            },
+            "managedIdentityName": {
+              "type": "string"
             }
           },
           "functions": [],
           "variables": {
-            "ownerRoleDefId": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
-            "ownerRoleAssignGuid": "[guid(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myManagedIdentity'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('ownerRoleDefId')))]"
+            "ownerRoleDefId": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635"
           },
           "resources": [
             {
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2018-11-30",
-              "name": "myManagedIdentity",
+              "name": "[parameters('managedIdentityName')]",
               "location": "[parameters('location')]"
             },
             {
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2020-08-01-preview",
-              "name": "[variables('ownerRoleAssignGuid')]",
+              "name": "[guid(variables('ownerRoleDefId'), resourceGroup().id)]",
               "properties": {
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myManagedIdentity')).principalId]",
-                "roleDefinitionId": "[if(startsWith(subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('ownerRoleDefId')), 'Microsoft.Authorization'), format('/providers/{0}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('ownerRoleDefId'))), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('ownerRoleDefId')))]"
+                "principalType": "ServicePrincipal",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))).principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('ownerRoleDefId'))]"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myManagedIdentity')]"
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
               ]
             }
           ],
           "outputs": {
             "mIdentityId": {
               "type": "string",
-              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myManagedIdentity')]"
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))]"
             },
             "mIdentityClientId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', 'myManagedIdentity')).clientId]"
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))).clientId]"
             }
           }
         }
@@ -942,7 +949,8 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET')]"
       ]
     },
     {
@@ -1914,8 +1922,7 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET')]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
     {
@@ -2723,7 +2730,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "12976566874274364189"
+              "templateHash": "3529451445607424346"
             }
           },
           "parameters": {
@@ -2780,13 +2787,13 @@
               "type": "string"
             },
             "LogAWkspKey": {
-              "type": "secureString"
+              "type": "string"
             },
             "storageKey": {
-              "type": "secureString"
+              "type": "string"
             },
             "evenHubKey": {
-              "type": "secureString"
+              "type": "string"
             }
           },
           "functions": [],
@@ -2794,7 +2801,7 @@
             {
               "type": "Microsoft.Resources/deploymentScripts",
               "apiVersion": "2020-10-01",
-              "name": "adbPATToken",
+              "name": "createAdbPATToken",
               "location": "[parameters('location')]",
               "kind": "AzureCLI",
               "identity": {
@@ -2839,7 +2846,7 @@
               },
               "properties": {
                 "azCliVersion": "2.26.0",
-                "timeout": "PT5M",
+                "timeout": "PT1H",
                 "cleanupPreference": "OnExpiration",
                 "retentionInterval": "PT1H",
                 "environmentVariables": [
@@ -2881,13 +2888,13 @@
                   },
                   {
                     "name": "ADB_PAT_TOKEN",
-                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'adbPATToken')).outputs.token_value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken')).outputs.token_value]"
                   }
                 ],
-                "scriptContent": "#/bin/bash -e\n\n# TODO: Create AKV backed secret scope using User assigned managed identity\nakv_backed='{\"resource_id\": \"'${AKV_ID}'\",\"dns_name\": \"'${AKV_URI}'\"}'\nakv_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        --arg bak \"$akv_backed\" \\\n        '{\n        scope: $sc,\n        scope_backend_type: \"AZURE_KEYVAULT\",\n        initial_manage_principal: \"users\",\n        backend_azure_keyvault: ($bak|fromjson)\n     }'\n)\n\n# Create secret scope backed by ADB\nadb_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        '{\n        scope: $sc,\n        initial_manage_principal: \"users\"\n     }'\n)\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create ADB secret scope backed by Key Vault\"\njson=$(echo $adb_secret_scope_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/scopes/create\")\n\nfunction createKey() {\n    local keyName=$1\n    local secretValue=$2\n    json_payload=$(\n        jq -n -c \\\n            --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n            --arg k \"$keyName\" \\\n            --arg v \"$secretValue\" \\\n            '{\n            scope: $sc,\n            key: $k,\n            string_value: $v\n        }'\n    )\n    response=$(echo $json_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/put\")\n    echo $response\n\n}\n\ncreateKey \"LogAWkspId\" \"$ADB_WORKSPACE_ID\"\ncreateKey \"LogAWkspkey\" \"$ADB_WORKSPACE_KEY\"\ncreateKey \"LogAWkspuri\" \"$ADB_WORKSPACE_URI\"\nC_ADB_PAT_TOKEN=$(sed -e 's/[\\\"\\\\]//g' <<<$ADB_PAT_TOKEN)\ncreateKey \"dbPATKey\" \"$C_ADB_PAT_TOKEN\"\ncreateKey \"ehKey\" \"$EVENT_HUB_KEY\"\ncreateKey \"stgAccessKey\" \"$STORAGE_ACCESS_KEY\"\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n"
+                "scriptContent": "#/bin/bash -e\n\n# TODO: Create AKV backed secret scope using User assigned managed identity\nakv_backed='{\"resource_id\": \"'${AKV_ID}'\",\"dns_name\": \"'${AKV_URI}'\"}'\nakv_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        --arg bak \"$akv_backed\" \\\n        '{\n        scope: $sc,\n        scope_backend_type: \"AZURE_KEYVAULT\",\n        initial_manage_principal: \"users\",\n        backend_azure_keyvault: ($bak|fromjson)\n     }'\n)\n\n# Create secret scope backed by ADB\nadb_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        '{\n        scope: $sc,\n        initial_manage_principal: \"users\"\n     }'\n)\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create ADB secret scope backed by Key Vault\"\njson=$(echo $adb_secret_scope_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/scopes/create\")\n\nfunction createKey() {\n    local keyName=$1\n    local secretValue=$2\n    json_payload=$(\n        jq -n -c \\\n            --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n            --arg k \"$keyName\" \\\n            --arg v \"$secretValue\" \\\n            '{\n            scope: $sc,\n            key: $k,\n            string_value: $v\n        }'\n    )\n    response=$(echo $json_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/put\")\n    echo $response\n\n}\n\ncreateKey \"LogAWkspId\" \"$ADB_LOG_WKSP_ID\"\ncreateKey \"LogAWkspkey\" \"$ADB_LOG_WKSP_KEY\"\nC_ADB_PAT_TOKEN=$(sed -e 's/[\\\"\\\\]//g' <<<$ADB_PAT_TOKEN)\ncreateKey \"dbPATKey\" \"$C_ADB_PAT_TOKEN\"\ncreateKey \"ehKey\" \"$EVENT_HUB_KEY\"\ncreateKey \"stgAccessKey\" \"$STORAGE_ACCESS_KEY\"\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'adbPATToken')]"
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken')]"
               ]
             },
             {
@@ -2923,7 +2930,7 @@
             {
               "type": "Microsoft.Resources/deploymentScripts",
               "apiVersion": "2020-10-01",
-              "name": "createCluster",
+              "name": "createAdbCluster",
               "location": "[parameters('location')]",
               "kind": "AzureCLI",
               "identity": {
@@ -2973,12 +2980,16 @@
                   }
                 ],
                 "scriptContent": "#/bin/bash -e\n\n# Databricks cluster config variables\nDATABRICKS_SPARK_CONF='{\n        \"spark.databricks.delta.preview.enabled\": \"true\",\n        \"spark.eventLog.unknownRecord.maxSize\":\"16m\"\n    }'\nDATABRICKS_INIT_CONFIG='{\n        \"dbfs\": {\n            \"destination\": \"dbfs:/databricks/init/capture_log_metrics.sh\"\n        }\n    }'\nDATABRICKS_ENV_VARS='{\n        \"LOG_ANALYTICS_WORKSPACE_ID\": \"{{secrets/'$ADB_SECRET_SCOPE_NAME'/LogAWkspId}}\",\n        \"LOG_ANALYTICS_WORKSPACE_KEY\": \"{{secrets/'$ADB_SECRET_SCOPE_NAME'/LogAWkspkey}}\"\n    }'\nDATABRICKS_CLUSTER_LOG='{\n    \"dbfs\": {\n      \"destination\": \"dbfs:/logs\"\n    }\n}'\n\n# Databricks Auth headers\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\n# Create Auth header for Databricks\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create Cluster\"\n\nCLUSTER_CREATE_JSON_STRING=$(jq -n -c \\\n    --arg cn \"$DATABRICKS_CLUSTER_NAME\" \\\n    --arg sv \"$DATABRICKS_SPARK_VERSION\" \\\n    --arg nt \"$DATABRICKS_NODE_TYPE\" \\\n    --arg nw \"$DATABRICKS_NUM_WORKERS\" \\\n    --arg spc \"$DATABRICKS_SPARK_CONF\" \\\n    --arg at \"$DATABRICKS_AUTO_TERMINATE_MINUTES\" \\\n    --arg is \"$DATABRICKS_INIT_CONFIG\" \\\n    --arg ev \"$DATABRICKS_ENV_VARS\" \\\n    --arg cl \"$DATABRICKS_CLUSTER_LOG\" \\\n    '{cluster_name: $cn,\n                    idempotency_token: $cn,\n                    spark_version: $sv,\n                    node_type_id: $nt,\n                    num_workers: ($nw|tonumber),\n                    autotermination_minutes: ($at|tonumber),\n                    spark_conf: ($spc|fromjson),\n                    init_scripts: ($is|fromjson),\n                    spark_env_vars: ($ev|fromjson),\n                    cluster_log_conf: ($cl|fromjson)\n                    }')\n\njson=$(echo $CLUSTER_CREATE_JSON_STRING | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/clusters/create\")\necho \"$json\" >$AZ_SCRIPTS_OUTPUT_PATH\n"
-              }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'secretScopeLink')]",
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'uploadFilesToAdb')]"
+              ]
             },
             {
               "type": "Microsoft.Resources/deploymentScripts",
               "apiVersion": "2020-10-01",
-              "name": "configCluster",
+              "name": "configAdbCluster",
               "location": "[parameters('location')]",
               "kind": "AzureCLI",
               "identity": {
@@ -3004,13 +3015,13 @@
                   },
                   {
                     "name": "ADB_CLUSTER_ID",
-                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createCluster')).outputs.cluster_id]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster')).outputs.cluster_id]"
                   }
                 ],
                 "scriptContent": "#/bin/bash -e\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\nlibraries='[\n        {\n                \"jar\": \"dbfs:/FileStore/jars/spark-listeners_3.0.1_2.12-1.0.0.jar\"\n        },\n        {\n                \"jar\": \"dbfs:/FileStore/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar\"\n        },\n        {\n            \"maven\": {\n                \"coordinates\": \"com.databricks.labs:overwatch_2.12:0.4.13\"\n            }\n        },\n        {\n            \"maven\": {\n                \"coordinates\": \"com.microsoft.azure:azure-eventhubs-spark_2.12:2.3.18\"\n            }\n        }\n    ]'\n\nlibrary_config=$(\n    jq -n -c \\\n        --arg aci \"$ADB_CLUSTER_ID\" \\\n        --arg li \"$libraries\" \\\n        '{\n      cluster_id: $aci,\n      libraries: ($li|fromjson)\n  }'\n)\n\njson=$(echo $library_config | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/libraries/install\")\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n\n# echo \"Create Overwatch Job\"\n# JOB_CREATE_JSON_STRING=$(jq -n -c \\\n#     --arg ci \"$cluster_id\" \\\n#     '{name: \"overwatch-job\",\n#                     existing_cluster_id: $ci,\n#                     notebook_task: {\n#                     \"notebook_path\": \"/Shared/azure_runner_docs_example.ipynb\"\n#                                     }\n#                     }')\n# create_notebook_job=$(echo $JOB_CREATE_JSON_STRING | d_curl \"https://${adbWorkspaceUrl}/api/2.0/jobs/create\")\n# echo $create_notebook_job\n\necho \"Configuring services done\"\n"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'createCluster')]"
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster')]"
               ]
             }
           ]
