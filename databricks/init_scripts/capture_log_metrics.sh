@@ -141,5 +141,5 @@ env
 
 echo "Install Linux agent"
 sed -i "s/^exit 101$/exit 0/" /usr/sbin/policy-rc.d 
-wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w $LOG_ANALYTICS_WORKSPACE_ID -s $LOG_ANALYTICS_WORKSPACE_KEY -d opinsights.azure.com
+curl https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh > onboard_agent.sh && sh onboard_agent.sh -w $LOG_ANALYTICS_WORKSPACE_ID -s $LOG_ANALYTICS_WORKSPACE_KEY -d opinsights.azure.com
 echo "Done. Installing Linux agent"
