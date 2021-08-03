@@ -53,9 +53,8 @@ function createKey() {
 
 }
 
-createKey "LogAWkspId" "$ADB_WORKSPACE_ID"
-createKey "LogAWkspkey" "$ADB_WORKSPACE_KEY"
-createKey "LogAWkspuri" "$ADB_WORKSPACE_URI"
+createKey "LogAWkspId" "$ADB_LOG_WKSP_ID"
+createKey "LogAWkspkey" "$ADB_LOG_WKSP_KEY"
 C_ADB_PAT_TOKEN=$(sed -e 's/[\"\\]//g' <<<$ADB_PAT_TOKEN)
 createKey "dbPATKey" "$C_ADB_PAT_TOKEN"
 createKey "ehKey" "$EVENT_HUB_KEY"
