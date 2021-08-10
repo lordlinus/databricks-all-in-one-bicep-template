@@ -118,6 +118,14 @@ resource spokeVnetName_resource 'Microsoft.Network/virtualNetworks@2020-08-01' =
           routeTable: {
             id: resourceId('Microsoft.Network/routeTables', routeTableName)
           }
+          serviceEndpoints: [
+            {
+              service: 'Microsoft.Storage'
+              locations: [
+                resourceGroup().location
+              ]
+            }
+          ]
           delegations: [
             {
               name: 'databricks-del-public'
