@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(4)
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
-param prefix string = 'sk'
+param prefix string = 'jlht'
 
 @description('Client PC username, NOTE: do not use admin')
 param adminUsername string
@@ -264,7 +264,6 @@ module aks 'aks/cluster.template.bicep' = {
   name: 'aksCluster'
   params: {
     name: aksClusterName
-    vnetName: spokeVnetName
   }
 }
 
