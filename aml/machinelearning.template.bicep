@@ -43,3 +43,4 @@ resource aml 'Microsoft.MachineLearningServices/workspaces@2021-04-01' = {
 }
 
 output amlId string = aml.id
+output amlWkspName string = amlWorkspaceName

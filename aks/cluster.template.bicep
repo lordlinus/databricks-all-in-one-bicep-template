@@ -37,7 +37,7 @@ param agentVMSize string = 'Standard_A1_v2'
 
 var dnsPrefix = name
 
-resource clusterName_resource 'Microsoft.ContainerService/managedClusters@2020-03-01' = {
+resource cluster 'Microsoft.ContainerService/managedClusters@2020-03-01' = {
   name: name
   location: location
   sku: {
@@ -88,8 +88,8 @@ resource clusterName_resource 'Microsoft.ContainerService/managedClusters@2020-0
   }
 }
 
-resource clusterName_agentpool 'Microsoft.ContainerService/managedClusters/agentPools@2020-03-01' = {
-  parent: clusterName_resource
+resource agentPool 'Microsoft.ContainerService/managedClusters/agentPools@2020-03-01' = {
+  parent: cluster
   name: 'agentpool'
   properties: {
     count: agentCount
@@ -101,3 +101,5 @@ resource clusterName_agentpool 'Microsoft.ContainerService/managedClusters/agent
     osType: 'Linux'
   }
 }
+
+output id string = cluster.id

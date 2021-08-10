@@ -242,8 +242,8 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     storageAccountPrivateLinkResource: adlsGen2.outputs.storageaccount_id
     eventHubName: eventHubName
     eventHubPrivateLinkResource: eventHubLogging.outputs.eHNamespaceId
-    AmlName: createAML.name
-    amlPrivateLinkResource: createAML.outputs.amlId
+    AmlName: aml.name
+    amlPrivateLinkResource: aml.outputs.amlId
     vnetName: spokeVnetName
   }
 }
@@ -274,7 +274,7 @@ module aks 'aks/cluster.template.bicep' = {
   }
 }
 
-module createAML './aml/machinelearning.template.bicep' = {
+module aml './aml/machinelearning.template.bicep' = {
   scope: rg
   name: 'MachineLearning'
   params: {
@@ -284,6 +284,16 @@ module createAML './aml/machinelearning.template.bicep' = {
     storageAccount: adlsGen2.outputs.storageaccount_id
     identity: myIdentity.outputs.mIdentityId
     applicationInsightsName: applicationInsightsName
+  }
+}
+
+module linkAmlAks './aks/aml-aks.deployment.bicep' = {
+  scope: rg
+  name: 'linkAmlAks'
+  params: {
+    identity: myIdentity.outputs.mIdentityId
+    aksId: aks.outputs.id
+    workspaceName: aml.outputs.amlWkspName
   }
 }
 
