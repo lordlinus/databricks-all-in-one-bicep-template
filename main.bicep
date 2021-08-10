@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(4)
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
-param prefix string = 'sk'
+param prefix string = 'ab'
 
 @description('Client PC username, NOTE: do not use admin')
 param adminUsername string
@@ -240,23 +240,23 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
   }
 }
 
-module createDatabricksCluster './databricks/deployment.template.bicep' = {
-  scope: rg
-  name: 'DatabricksCluster'
-  params: {
-    location: location
-    identity: myIdentity.outputs.mIdentityId
-    adb_workspace_url: adb.outputs.databricks_workspaceUrl
-    adb_workspace_id: adb.outputs.databricks_workspace_id
-    adb_secret_scope_name: adbAkvLinkName
-    akv_id: keyVault.outputs.keyvault_id
-    akv_uri: keyVault.outputs.keyvault_uri
-    LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
-    LogAWkspKey: loganalytics.outputs.primarySharedKey
-    storageKey: adlsGen2.outputs.key1
-    evenHubKey: eventHubLogging.outputs.eHPConnString
-  }
-}
+// module createDatabricksCluster './databricks/deployment.template.bicep' = {
+//   scope: rg
+//   name: 'DatabricksCluster'
+//   params: {
+//     location: location
+//     identity: myIdentity.outputs.mIdentityId
+//     adb_workspace_url: adb.outputs.databricks_workspaceUrl
+//     adb_workspace_id: adb.outputs.databricks_workspace_id
+//     adb_secret_scope_name: adbAkvLinkName
+//     akv_id: keyVault.outputs.keyvault_id
+//     akv_uri: keyVault.outputs.keyvault_uri
+//     LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
+//     LogAWkspKey: loganalytics.outputs.primarySharedKey
+//     storageKey: adlsGen2.outputs.key1
+//     evenHubKey: eventHubLogging.outputs.eHPConnString
+//   }
+// }
 
 module createAML './aml/machinelearning.template.bicep' = {
   scope: rg
@@ -288,5 +288,5 @@ module createAML './aml/machinelearning.template.bicep' = {
 // output eHubNameId string = eventHubLogging.outputs.eHubNameId
 // output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
-output dsOutputs object = createDatabricksCluster.outputs.patOutput
-output adbCluster object = createDatabricksCluster.outputs.adbCluster
+// output dsOutputs object = createDatabricksCluster.outputs.patOutput
+// output adbCluster object = createDatabricksCluster.outputs.adbCluster
