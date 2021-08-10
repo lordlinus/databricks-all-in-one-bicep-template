@@ -121,6 +121,14 @@ log4j.appender.logAnalyticsAppender.filter.spark=com.microsoft.pnp.logging.Spark
 # Commented line below shows how to set the threshhold for logging to only capture events that are
 # level ERROR or more severe.
 # log4j.appender.logAnalyticsAppender.Threshold=ERROR
+
+# Adding custom propertied to log Python applications
+log4j.appender.pythonapp=com.databricks.logging.RedactionRollingFileAppender
+log4j.appender.pythonapp.layout=org.apache.log4j.PatternLayout
+log4j.appender.pythonapp.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n
+log4j.appender.pythonapp.rollingPolicy=org.apache.log4j.rolling.TimeBasedRollingPolicy
+log4j.appender.pythonapp.rollingPolicy.FileNamePattern=logs/pythonapp-%d{yyyy-MM-dd-HH}.log.gz
+log4j.appender.pythonapp.rollingPolicy.ActiveFileName=logs/pythonapp-active.log
 EOF
 
 echo "END: Updating $LOG4J_CONFIG_FILE with Log Analytics appender"

@@ -1,5 +1,5 @@
 @description('The name of the existing network security group to create.')
-param securityGroupName string 
+param securityGroupName string
 
 @description('The name of the virtual network to create.')
 param spokeVnetName string
@@ -43,6 +43,8 @@ param firewallSubnetCidr string
 @description('Cidr range for the private link subnet..')
 param privatelinkSubnetCidr string
 
+param clinetDevicesSubnetCidr string
+
 var securityGroupId = resourceId('Microsoft.Network/networkSecurityGroups', securityGroupName)
 
 resource hubVnetName_resource 'Microsoft.Network/virtualNetworks@2020-08-01' = {
@@ -70,10 +72,10 @@ resource hubVnetName_resource 'Microsoft.Network/virtualNetworks@2020-08-01' = {
       }
       {
         name: 'ClientDevices'
-        properties:{
-          addressPrefix: '10.0.200.0/24'
-          routeTable:{
-            id:resourceId('Microsoft.Network/routeTables', routeTableName)
+        properties: {
+          addressPrefix: clinetDevicesSubnetCidr
+          routeTable: {
+            id: resourceId('Microsoft.Network/routeTables', routeTableName)
           }
         }
       }
@@ -177,3 +179,8 @@ resource spokeVnetName_Peer_SpokeHub 'Microsoft.Network/virtualNetworks/virtualN
 // output spoke_vnet_id string = spokeVnetName_resource.id
 output privatelinksubnet_id string = resourceId('Microsoft.Network/virtualNetworks/subnets', spokeVnetName, privatelinkSubnetName)
 // output spoke_vnet_name string= spokeVnetName
+output databricksPublicSubnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', spokeVnetName, publicSubnetName)
+
+output spokeVnetName string = spokeVnetName
+
+output hubVnetName string = hubVnetName

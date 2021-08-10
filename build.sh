@@ -19,7 +19,8 @@ bicep_output=$(az deployment sub create \
     --location "southeastasia" \
     --template-file main.bicep \
     --parameters adminUsername=$username \
-    --parameters adminPassword=$password)
+    --parameters adminPassword=$password \
+    --only-show-errors)
 
 if [[ -z "$bicep_output" ]]; then
     echo "Deployment failed, check errors on Azure portal"

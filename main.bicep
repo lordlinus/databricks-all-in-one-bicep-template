@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(4)
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
-param prefix string = 'ss'
+param prefix string = 'sk'
 
 @description('Client PC username, NOTE: do not use admin')
 param adminUsername string
@@ -20,7 +20,7 @@ var uString = '${prefix}${uniqueSubString}'
 // var storageSuffix = environment().suffixes.storage
 
 var storageAccountName = '${substring(uString, 0, 10)}stg01'
-var keyVaultName = '${substring(uString, 0, 6)}kv01'
+var keyVaultName = '${substring(uString, 0, 6)}akv01'
 var resourceGroupName = '${substring(uString, 0, 6)}-rg'
 var adbWorkspaceName = '${substring(uString, 0, 6)}AdbWksp'
 var nsgName = '${substring(uString, 0, 6)}nsg'
@@ -30,6 +30,10 @@ var fwRoutingTable = '${substring(uString, 0, 6)}AdbRoutingTbl'
 var clientPcName = '${substring(uString, 0, 6)}ClientPc'
 var eHNameSpace = '${substring(uString, 0, 6)}eh'
 var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
+var amlWorkspaceName = '${substring(uString, 0, 6)}AmlWksp'
+var containerRegistryName = '${substring(uString, 0, 6)}registry'
+var applicationInsightsName = '${substring(uString, 0, 6)}AppInsights'
+// var routeTableName = 'RouteTable'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace
 var managedIdentityName = '${substring(uString, 0, 6)}Identity'
@@ -37,7 +41,7 @@ var managedIdentityName = '${substring(uString, 0, 6)}Identity'
 @description('Default location of the resources')
 param location string = 'southeastasia'
 @description('')
-param hubVnetName string = 'hubVnetName'
+param hubVnetName string = 'hubvnet'
 @description('')
 param spokeVnetName string = 'spokevnet'
 @description('')
@@ -53,6 +57,9 @@ param FirewallSubnetCidr string = '10.0.1.0/26'
 @description('')
 param PrivateLinkSubnetCidr string = '10.179.128.0/26'
 
+@description('')
+param clientDevicesSubnetCidr string = '10.0.200.0/24'
+
 @description('Southeastasia ADB webapp address')
 param webappDestinationAddresses array = [
   '52.187.145.107/32'
@@ -60,7 +67,7 @@ param webappDestinationAddresses array = [
 ]
 @description('Southeastasia ADB log blob')
 param logBlobstorageDomains array = [
-  'dblogprodseasia.blob.core.windows.net'
+  'dblogprodseasia.blob.${environment().suffixes.storage}'
 ]
 @description('Southeastasia ADB extended ip')
 param extendedInfraIp array = [
@@ -80,11 +87,11 @@ param eventHubEndpointDomain array = [
 ]
 @description('Southeastasia Artifacts Blob')
 param artifactBlobStoragePrimaryDomains array = [
-  'dbartifactsprodseap.blob.core.windows.net'
-  'arprodseapa1.blob.core.windows.net'
-  'arprodseapa2.blob.core.windows.net'
-  'arprodseapa3.blob.core.windows.net'
-  'dbartifactsprodeap.blob.core.windows.net'
+  'dbartifactsprodseap.blob.${environment().suffixes.storage}'
+  'arprodseapa1.blob.${environment().suffixes.storage}'
+  'arprodseapa2.blob.${environment().suffixes.storage}'
+  'arprodseapa3.blob.${environment().suffixes.storage}'
+  'dbartifactsprodeap.blob.${environment().suffixes.storage}'
 ]
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -94,18 +101,10 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 
 module myIdentity './other/managedIdentity.template.bicep' = {
   scope: rg
-  name: 'myIdentity'
+  name: 'ManagedIdentity'
   params: {
     managedIdentityName: managedIdentityName
     location: location
-  }
-}
-
-module routeTable './network/routetable.template.bicep' = {
-  scope: rg
-  name: 'RouteTable'
-  params: {
-    routeTableName: fwRoutingTable
   }
 }
 
@@ -117,9 +116,17 @@ module nsg './network/securitygroup.template.bicep' = {
   }
 }
 
+module routeTable './network/routetable.template.bicep' = {
+  scope: rg
+  name: 'RouteTable'
+  params: {
+    routeTableName: fwRoutingTable
+  }
+}
+
 module vnets './network/vnet.template.bicep' = {
   scope: rg
-  name: 'HubandSpokeVNET'
+  name: 'HubandSpokeVnets'
   params: {
     hubVnetName: hubVnetName
     spokeVnetName: spokeVnetName
@@ -131,39 +138,7 @@ module vnets './network/vnet.template.bicep' = {
     publicSubnetCidr: PublicSubnetCidr
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
-  }
-}
-
-module adb './databricks/workspace.template.bicep' = {
-  scope: rg
-  name: 'DatabricksWorkspace'
-  params: {
-    vnetName: spokeVnetName
-    adbWorkspaceSkuTier: 'premium'
-    adbWorkspaceName: adbWorkspaceName
-  }
-  dependsOn:[
-    vnets
-  ]
-}
-
-module hubFirewall './network/firewall.template.bicep' = {
-  scope: rg
-  name: 'HubFirewall'
-  params: {
-    firewallName: firewallName
-    publicIpAddressName: firewallPublicIpName
-    vnetName: hubVnetName
-    webappDestinationAddresses: webappDestinationAddresses
-    logBlobstorageDomains: logBlobstorageDomains
-    infrastructureDestinationAddresses: extendedInfraIp
-    sccRelayDomains: sccReplayDomain
-    metastoreDomains: metastoreDomains
-    eventHubEndpointDomains: eventHubEndpointDomain
-    artifactBlobStoragePrimaryDomains: artifactBlobStoragePrimaryDomains
-    dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.core.windows.net')
-    // clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
-    clientPrivateIpAddr: '10.0.200.4'
+    clinetDevicesSubnetCidr: clientDevicesSubnetCidr
   }
 }
 
@@ -172,6 +147,43 @@ module adlsGen2 './storage/storageaccount.template.bicep' = {
   name: 'StorageAccount'
   params: {
     storageAccountName: storageAccountName
+    databricksPublicSubnetId: vnets.outputs.databricksPublicSubnetId
+  }
+}
+module adb './databricks/workspace.template.bicep' = {
+  scope: rg
+  name: 'DatabricksWorkspace'
+  params: {
+    vnetName: vnets.outputs.spokeVnetName
+    adbWorkspaceSkuTier: 'premium'
+    adbWorkspaceName: adbWorkspaceName
+  }
+}
+module hubFirewall './network/firewall.template.bicep' = {
+  scope: rg
+  name: 'HubFirewall'
+  params: {
+    firewallName: firewallName
+    publicIpAddressName: firewallPublicIpName
+    vnetName: vnets.outputs.hubVnetName
+    webappDestinationAddresses: webappDestinationAddresses
+    logBlobstorageDomains: logBlobstorageDomains
+    infrastructureDestinationAddresses: extendedInfraIp
+    sccRelayDomains: sccReplayDomain
+    metastoreDomains: metastoreDomains
+    eventHubEndpointDomains: eventHubEndpointDomain
+    artifactBlobStoragePrimaryDomains: artifactBlobStoragePrimaryDomains
+    dbfsBlobStrageDomain: array('${adb.outputs.databricks_dbfs_storage_accountName}.blob.${environment().suffixes.storage}')
+    clientPrivateIpAddr: clientpc.outputs.clientPrivateIpaddr
+  }
+}
+
+module routeTableUpdate './network/routetableFirewallRoute.template.bicep' = {
+  scope: rg
+  name: 'RouteTableUpdate'
+  params: {
+    routeTableName: fwRoutingTable
+    firewallPrivateIp: hubFirewall.outputs.firewallPrivateIp
   }
 }
 
@@ -193,11 +205,14 @@ module clientpc './other/clientdevice.template.bicep' = {
     vnetName: hubVnetName
     clientPcName: clientPcName
   }
+  dependsOn: [
+    vnets
+  ]
 }
 
 module loganalytics './monitor/loganalytics.template.bicep' = {
   scope: rg
-  name: 'loganalytics'
+  name: 'LogAnalytics'
 }
 
 module eventHubLogging './monitor/eventhub.template.bicep' = {
@@ -219,16 +234,15 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     storageAccountPrivateLinkResource: adlsGen2.outputs.storageaccount_id
     eventHubName: eventHubName
     eventHubPrivateLinkResource: eventHubLogging.outputs.eHNamespaceId
-    targetSubResourceDfs: 'dfs'
-    targetSubResourceVault: 'vault'
-    targetSubResourceEventHub: 'namespace'
+    AmlName: createAML.name
+    amlPrivateLinkResource: createAML.outputs.amlId
     vnetName: spokeVnetName
   }
 }
 
 module createDatabricksCluster './databricks/deployment.template.bicep' = {
   scope: rg
-  name: 'createDatabricksCluster'
+  name: 'DatabricksCluster'
   params: {
     location: location
     identity: myIdentity.outputs.mIdentityId
@@ -241,6 +255,19 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
     LogAWkspKey: loganalytics.outputs.primarySharedKey
     storageKey: adlsGen2.outputs.key1
     evenHubKey: eventHubLogging.outputs.eHPConnString
+  }
+}
+
+module createAML './aml/machinelearning.template.bicep' = {
+  scope: rg
+  name: 'MachineLearning'
+  params: {
+    amlWorkspaceName: amlWorkspaceName
+    containerRegistryName: containerRegistryName
+    keyVaultIdentifierId: keyVault.outputs.keyvault_id
+    storageAccount: adlsGen2.outputs.storageaccount_id
+    identity: myIdentity.outputs.mIdentityId
+    applicationInsightsName: applicationInsightsName
   }
 }
 
@@ -261,4 +288,5 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
 // output eHubNameId string = eventHubLogging.outputs.eHubNameId
 // output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
-// output dsOutputs object = createDatabricksCluster.outputs.patOutput
+output dsOutputs object = createDatabricksCluster.outputs.patOutput
+output adbCluster object = createDatabricksCluster.outputs.adbCluster

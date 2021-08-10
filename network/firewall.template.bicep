@@ -40,8 +40,6 @@ param artifactBlobStoragePrimaryDomains array = []
 @description('the domain name of DBFS root Blob storage')
 param dbfsBlobStrageDomain array = []
 
-var storageSuffix = environment().suffixes.storage
-
 
 resource publicIpAddressName_resource 'Microsoft.Network/publicIpAddresses@2019-02-01' = {
   name: publicIpAddressName
@@ -79,27 +77,27 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
     additionalProperties: {
       'Network.DNS.EnableProxy': 'true'
     }
-    natRuleCollections:[
+    natRuleCollections: [
       {
         name: 'Allow-RDP-DNAT'
-        properties:{
+        properties: {
           priority: 100
-          action:{
+          action: {
             type: 'Dnat'
           }
-          rules:[
+          rules: [
             {
               name: 'rdp-dnat'
               protocols: [
                 'TCP'
               ]
-              sourceAddresses:[
+              sourceAddresses: [
                 '*'
               ]
               destinationAddresses: [
                 publicIpAddressName_resource.properties.ipAddress
               ]
-              destinationPorts:[
+              destinationPorts: [
                 '3389'
               ]
               translatedAddress: clientPrivateIpAddr
@@ -296,6 +294,7 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
               ]
               fqdnTags: []
               targetFqdns: [
+                'pypi.org'
                 '*.pypi.org'
                 '*.pythonhosted.org'
               ]
@@ -325,7 +324,7 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
                 '*'
               ]
               sourceIpGroups: []
-            }            
+            }
             {
               name: 'GitHubScripts'
               protocols: [
@@ -362,9 +361,11 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
               ]
               fqdnTags: []
               targetFqdns: [
+                '${replace(replace(environment().authentication.loginEndpoint,'https:',''),'/','')}'
+                '${replace(replace(environment().resourceManager,'https:',''),'/','')}'
                 '*.ods.opinsights.azure.com'
                 '*.oms.opinsights.azure.com'
-                '*.blob.${storageSuffix}'
+                '*.blob.${environment().suffixes.storage}'
                 '*.azure-automation.net'
               ]
               sourceAddresses: [
@@ -379,3 +380,6 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
   }
   tags: {}
 }
+
+output firewallPrivateIp string = firewallName_resource.properties.hubIPAddresses.privateIPAddress
+// output firewallPublivIp array = firewallName_resource.properties.hubIPAddresses.publicIPs.addresses
