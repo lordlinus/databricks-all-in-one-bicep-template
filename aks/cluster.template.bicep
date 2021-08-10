@@ -12,7 +12,7 @@ param osDiskSizeGB int = 100
 @description('The number of nodes for the cluster.')
 @minValue(1)
 @maxValue(50)
-param agentCount int = 3
+param agentCount int = 1
 
 @description('A CIDR notation IP range from which to assign pod IPs when kubenet is used')
 param podCidr string = '10.244.0.0/16'
@@ -27,7 +27,7 @@ param dnsServiceIP string = '10.0.0.10'
 param dockerBridgeCidr string = '172.17.0.1/16'
 
 @description('The size of the VM instances')
-param agentVMSize string = 'Standard_A1_v2'
+param agentVMSize string = 'Standard_A2_v2'
 
 // @description('User name for the Linux Virtual Machines.')
 // param linuxAdminUsername string
@@ -52,7 +52,7 @@ resource cluster 'Microsoft.ContainerService/managedClusters@2020-03-01' = {
     agentPoolProfiles: [
       {
         name: 'agentpool'
-        count: 3
+        count: 1
         vmSize: agentVMSize
         osDiskSizeGB: osDiskSizeGB
         maxPods: 110
