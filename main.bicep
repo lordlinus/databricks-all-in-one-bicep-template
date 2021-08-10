@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(4)
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
-param prefix string = 'jlht'
+param prefix string = 'ab'
 
 @description('Client PC username, NOTE: do not use admin')
 param adminUsername string
@@ -46,20 +46,26 @@ param hubVnetName string = 'hubvnet'
 @description('')
 param spokeVnetName string = 'spokevnet'
 @description('')
-param SpokeVnetCidr string = '10.179.0.0/16'
-@description('')
 param HubVnetCidr string = '10.0.0.0/16'
+@description('')
+param FirewallSubnetCidr string = '10.0.1.0/26'
+@description('')
+param clientDevicesSubnetCidr string = '10.0.200.0/24'
+// Divide 10.179.0.0/16 into 4 group for simplicity, each with 16382 address
+// 10.179.0.0/18
+// 10.179.64.0/18
+// 10.179.128.0/18
+// 10.179.192.0/18
+@description('')
+param SpokeVnetCidr string = '10.179.0.0/16'
 @description('')
 param PrivateSubnetCidr string = '10.179.0.0/18'
 @description('')
 param PublicSubnetCidr string = '10.179.64.0/18'
 @description('')
-param FirewallSubnetCidr string = '10.0.1.0/26'
+param AksSubnetCidr string = '10.179.128.0/18'
 @description('')
-param PrivateLinkSubnetCidr string = '10.179.128.0/26'
-
-@description('')
-param clientDevicesSubnetCidr string = '10.0.200.0/24'
+param PrivateLinkSubnetCidr string = '10.179.192.0/18'
 
 @description('Southeastasia ADB webapp address')
 param webappDestinationAddresses array = [
@@ -140,6 +146,7 @@ module vnets './network/vnet.template.bicep' = {
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
     clinetDevicesSubnetCidr: clientDevicesSubnetCidr
+    AksSubnetCidr: AksSubnetCidr
   }
 }
 

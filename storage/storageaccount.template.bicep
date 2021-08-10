@@ -44,11 +44,11 @@ resource storageAccountName_resource 'Microsoft.Storage/storageAccounts@2019-06-
     networkAcls: {
       bypass: 'AzureServices'
       virtualNetworkRules: [
-        // {
-        //   id: databricksPublicSubnetId
-        //   action: 'Allow'
-        //   state: 'succeeded'
-        // }
+        {
+          id: databricksPublicSubnetId
+          action: 'Allow'
+          state: 'succeeded'
+        }
       ]
       ipRules: []
       defaultAction: 'Deny'

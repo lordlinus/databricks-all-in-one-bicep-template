@@ -1,5 +1,5 @@
 @description('Azure datacentre Location to deploy the Firewall and IP Address')
-param firewalllocation string = resourceGroup().location
+param firewallLocation string = resourceGroup().location
 
 @description('Name of the IP Address')
 param publicIpAddressName string
@@ -40,22 +40,24 @@ param artifactBlobStoragePrimaryDomains array = []
 @description('the domain name of DBFS root Blob storage')
 param dbfsBlobStrageDomain array = []
 
+@description('Specifies the number of public IPs to allocate to the firewall')
+param fwpublicipcount int = 1
 
-resource publicIpAddressName_resource 'Microsoft.Network/publicIpAddresses@2019-02-01' = {
+resource publicIpAddressName_resource 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
   name: publicIpAddressName
-  location: firewalllocation
+  location: firewallLocation
   sku: {
     name: 'Standard'
   }
   properties: {
     publicIPAllocationMethod: 'Static'
+    
   }
-  tags: {}
 }
 
-resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
+resource firewallName_resource 'Microsoft.Network/azureFirewalls@2021-02-01' = {
   name: firewallName
-  location: firewalllocation
+  location: firewallLocation
   properties: {
     ipConfigurations: [
       {
@@ -70,6 +72,11 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
         }
       }
     ]
+    hubIPAddresses:{
+      publicIPs:{
+        count: fwpublicipcount
+      }
+    }
     sku: {
       tier: firewallSKU
     }
@@ -361,12 +368,34 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
               ]
               fqdnTags: []
               targetFqdns: [
-                '${replace(replace(environment().authentication.loginEndpoint,'https:',''),'/','')}'
-                '${replace(replace(environment().resourceManager,'https:',''),'/','')}'
                 '*.ods.opinsights.azure.com'
                 '*.oms.opinsights.azure.com'
+              ]
+              sourceAddresses: [
+                '*'
+              ]
+              sourceIpGroups: []
+            }
+            {
+              name: 'AzureManagement'
+              protocols: [
+                {
+                  protocolType: 'Http'
+                  port: 80
+                }
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              fqdnTags: []
+              targetFqdns: [
+                '${replace(replace(environment().authentication.loginEndpoint,'https:',''),'/','')}'
+                '${replace(replace(environment().resourceManager,'https:',''),'/','')}'
                 '*.blob.${environment().suffixes.storage}'
                 '*.azure-automation.net'
+                'ml.azure.com'
+                '*.msauth.net'
               ]
               sourceAddresses: [
                 '*'
@@ -378,8 +407,6 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2020-05-01' = {
       }
     ]
   }
-  tags: {}
 }
 
-output firewallPrivateIp string = firewallName_resource.properties.hubIPAddresses.privateIPAddress
-// output firewallPublivIp array = firewallName_resource.properties.hubIPAddresses.publicIPs.addresses
+output firewallPrivateIp string = firewallName_resource.properties.ipConfigurations[0].properties.privateIPAddress// output firewallPublivIp array = firewallName_resource.properties.hubIPAddresses.publicIPs.addresses

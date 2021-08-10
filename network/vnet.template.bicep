@@ -43,6 +43,11 @@ param firewallSubnetCidr string
 @description('Cidr range for the private link subnet..')
 param privatelinkSubnetCidr string
 
+@description('The name of the private subnet to create.')
+param aksSubnetName string = 'aks-subnet'
+@description('Cidr range for the AKS subnet..')
+param AksSubnetCidr string
+
 param clinetDevicesSubnetCidr string
 
 var securityGroupId = resourceId('Microsoft.Network/networkSecurityGroups', securityGroupName)
@@ -118,6 +123,14 @@ resource spokeVnetName_resource 'Microsoft.Network/virtualNetworks@2020-08-01' =
           routeTable: {
             id: resourceId('Microsoft.Network/routeTables', routeTableName)
           }
+          serviceEndpoints: [
+            {
+              service: 'Microsoft.Storage'
+              locations: [
+                resourceGroup().location
+              ]
+            }
+          ]
           delegations: [
             {
               name: 'databricks-del-public'
@@ -155,6 +168,13 @@ resource spokeVnetName_resource 'Microsoft.Network/virtualNetworks@2020-08-01' =
           delegations: []
           privateEndpointNetworkPolicies: 'Disabled'
           privateLinkServiceNetworkPolicies: 'Enabled'
+        }
+      }
+      {
+        name: aksSubnetName
+        properties: {
+          addressPrefix: AksSubnetCidr
+          delegations: []
         }
       }
     ]
