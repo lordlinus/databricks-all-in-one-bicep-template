@@ -368,12 +368,34 @@ resource firewallName_resource 'Microsoft.Network/azureFirewalls@2021-02-01' = {
               ]
               fqdnTags: []
               targetFqdns: [
-                '${replace(replace(environment().authentication.loginEndpoint,'https:',''),'/','')}'
-                '${replace(replace(environment().resourceManager,'https:',''),'/','')}'
                 '*.ods.opinsights.azure.com'
                 '*.oms.opinsights.azure.com'
+              ]
+              sourceAddresses: [
+                '*'
+              ]
+              sourceIpGroups: []
+            }
+            {
+              name: 'AzureManagement'
+              protocols: [
+                {
+                  protocolType: 'Http'
+                  port: 80
+                }
+                {
+                  protocolType: 'Https'
+                  port: 443
+                }
+              ]
+              fqdnTags: []
+              targetFqdns: [
+                '${replace(replace(environment().authentication.loginEndpoint,'https:',''),'/','')}'
+                '${replace(replace(environment().resourceManager,'https:',''),'/','')}'
                 '*.blob.${environment().suffixes.storage}'
                 '*.azure-automation.net'
+                'ml.azure.com'
+                '*.msauth.net'
               ]
               sourceAddresses: [
                 '*'

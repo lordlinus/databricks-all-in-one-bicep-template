@@ -45,20 +45,26 @@ param hubVnetName string = 'hubvnet'
 @description('')
 param spokeVnetName string = 'spokevnet'
 @description('')
-param SpokeVnetCidr string = '10.179.0.0/16'
-@description('')
 param HubVnetCidr string = '10.0.0.0/16'
+@description('')
+param FirewallSubnetCidr string = '10.0.1.0/26'
+@description('')
+param clientDevicesSubnetCidr string = '10.0.200.0/24'
+// Divide 10.179.0.0/16 into 4 group for simplicity, each with 16382 address
+// 10.179.0.0/18
+// 10.179.64.0/18
+// 10.179.128.0/18
+// 10.179.192.0/18
+@description('')
+param SpokeVnetCidr string = '10.179.0.0/16'
 @description('')
 param PrivateSubnetCidr string = '10.179.0.0/18'
 @description('')
 param PublicSubnetCidr string = '10.179.64.0/18'
 @description('')
-param FirewallSubnetCidr string = '10.0.1.0/26'
+param AksSubnetCidr string = '10.179.128.0/18'
 @description('')
-param PrivateLinkSubnetCidr string = '10.179.128.0/26'
-
-@description('')
-param clientDevicesSubnetCidr string = '10.0.200.0/24'
+param PrivateLinkSubnetCidr string = '10.179.192.0/18'
 
 @description('Southeastasia ADB webapp address')
 param webappDestinationAddresses array = [
@@ -139,6 +145,7 @@ module vnets './network/vnet.template.bicep' = {
     privateSubnetCidr: PrivateSubnetCidr
     privatelinkSubnetCidr: PrivateLinkSubnetCidr
     clinetDevicesSubnetCidr: clientDevicesSubnetCidr
+    AksSubnetCidr: AksSubnetCidr
   }
 }
 
@@ -240,23 +247,23 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
   }
 }
 
-// module createDatabricksCluster './databricks/deployment.template.bicep' = {
-//   scope: rg
-//   name: 'DatabricksCluster'
-//   params: {
-//     location: location
-//     identity: myIdentity.outputs.mIdentityId
-//     adb_workspace_url: adb.outputs.databricks_workspaceUrl
-//     adb_workspace_id: adb.outputs.databricks_workspace_id
-//     adb_secret_scope_name: adbAkvLinkName
-//     akv_id: keyVault.outputs.keyvault_id
-//     akv_uri: keyVault.outputs.keyvault_uri
-//     LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
-//     LogAWkspKey: loganalytics.outputs.primarySharedKey
-//     storageKey: adlsGen2.outputs.key1
-//     evenHubKey: eventHubLogging.outputs.eHPConnString
-//   }
-// }
+module createDatabricksCluster './databricks/deployment.template.bicep' = {
+  scope: rg
+  name: 'DatabricksCluster'
+  params: {
+    location: location
+    identity: myIdentity.outputs.mIdentityId
+    adb_workspace_url: adb.outputs.databricks_workspaceUrl
+    adb_workspace_id: adb.outputs.databricks_workspace_id
+    adb_secret_scope_name: adbAkvLinkName
+    akv_id: keyVault.outputs.keyvault_id
+    akv_uri: keyVault.outputs.keyvault_uri
+    LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
+    LogAWkspKey: loganalytics.outputs.primarySharedKey
+    storageKey: adlsGen2.outputs.key1
+    evenHubKey: eventHubLogging.outputs.eHPConnString
+  }
+}
 
 module createAML './aml/machinelearning.template.bicep' = {
   scope: rg
@@ -288,5 +295,5 @@ module createAML './aml/machinelearning.template.bicep' = {
 // output eHubNameId string = eventHubLogging.outputs.eHubNameId
 // output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
-// output dsOutputs object = createDatabricksCluster.outputs.patOutput
-// output adbCluster object = createDatabricksCluster.outputs.adbCluster
+output dsOutputs object = createDatabricksCluster.outputs.patOutput
+output adbCluster object = createDatabricksCluster.outputs.adbCluster
