@@ -33,6 +33,7 @@ var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
 var amlWorkspaceName = '${substring(uString, 0, 6)}AmlWksp'
 var containerRegistryName = '${substring(uString, 0, 6)}registry'
 var applicationInsightsName = '${substring(uString, 0, 6)}AppInsights'
+var aksClusterName = '${substring(uString, 0, 6)}aksClusterName'
 // var routeTableName = 'RouteTable'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace
@@ -255,6 +256,15 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
     LogAWkspKey: loganalytics.outputs.primarySharedKey
     storageKey: adlsGen2.outputs.key1
     evenHubKey: eventHubLogging.outputs.eHPConnString
+  }
+}
+
+module aks 'aks/cluster.template.bicep' = {
+  scope: resourceGroup(rg.name)
+  name: 'aksCluster'
+  params: {
+    name: aksClusterName
+    vnetName: spokeVnetName
   }
 }
 
