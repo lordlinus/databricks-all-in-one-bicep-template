@@ -56,6 +56,7 @@ resource keyVaultName_resource 'Microsoft.KeyVault/vaults@2019-09-01' = {
       name: keyVaultSkuTier
       family: 'A'
     }
+    softDeleteRetentionInDays: 7
     networkAcls: {
       defaultAction: 'Deny'
       bypass: 'AzureServices'

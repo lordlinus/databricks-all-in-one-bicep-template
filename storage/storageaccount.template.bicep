@@ -5,6 +5,8 @@ param storageAccountName string
 
 param storageContainerName string = 'data'
 
+param databricksPublicSubnetId string
+
 @allowed([
   'Standard_LRS'
   'Standard_GRS'
@@ -21,8 +23,7 @@ param storageAccountSku string = 'Standard_LRS'
 // @description('Storage Account Sku tier')
 // param storageAccountSkuTier string = 'Premium'
 
-@description('Location for all resources.')
-param storageAccountLocation string = resourceGroup().location
+var location  = resourceGroup().location
 
 @description('Enable or disable Blob encryption at Rest.')
 param encryptionEnabled bool = true
@@ -33,7 +34,7 @@ resource storageAccountName_resource 'Microsoft.Storage/storageAccounts@2019-06-
     displayName: storageAccountName
     type: 'Storage'
   }
-  location: storageAccountLocation
+  location: location
   kind: 'StorageV2'
   properties: {
     isHnsEnabled: true
@@ -42,7 +43,13 @@ resource storageAccountName_resource 'Microsoft.Storage/storageAccounts@2019-06-
     accessTier: 'Hot'
     networkAcls: {
       bypass: 'AzureServices'
-      virtualNetworkRules: []
+      virtualNetworkRules: [
+        // {
+        //   id: databricksPublicSubnetId
+        //   action: 'Allow'
+        //   state: 'succeeded'
+        // }
+      ]
       ipRules: []
       defaultAction: 'Deny'
     }
