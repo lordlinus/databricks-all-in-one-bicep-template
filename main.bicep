@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(4)
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
-param prefix string = 'jl'
+param prefix string = 'ab'
 
 @description('Client PC username, NOTE: do not use admin')
 param adminUsername string
