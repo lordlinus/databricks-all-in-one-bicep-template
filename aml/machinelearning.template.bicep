@@ -26,10 +26,7 @@ resource aml 'Microsoft.MachineLearningServices/workspaces@2021-04-01' = {
   name: amlWorkspaceName
   location: resourceGroup().location
   identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${identity}': {}
-    }
+    type: 'SystemAssigned'
   }
   properties: {
     friendlyName: amlWorkspaceName
@@ -38,7 +35,6 @@ resource aml 'Microsoft.MachineLearningServices/workspaces@2021-04-01' = {
     applicationInsights: applicationInsightsName_resource.id
     containerRegistry: ctrRegistry.id
     allowPublicAccessWhenBehindVnet: false
-    primaryUserAssignedIdentity: identity
   }
 }
 
