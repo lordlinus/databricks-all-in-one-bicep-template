@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(4)
 @description('2-4 chars to prefix the Azure resources, NOTE: no number or symbols')
-param prefix string = 'ab'
+param prefix string = 'jl'
 
 @description('Client PC username, NOTE: do not use admin')
 param adminUsername string
@@ -20,6 +20,7 @@ var uString = '${prefix}${uniqueSubString}'
 // var storageSuffix = environment().suffixes.storage
 
 var storageAccountName = '${substring(uString, 0, 10)}stg01'
+var amlStorageAccountName = '${substring(uString, 0, 10)}stg02'
 var keyVaultName = '${substring(uString, 0, 6)}akv01'
 var resourceGroupName = '${substring(uString, 0, 6)}-rg'
 var adbWorkspaceName = '${substring(uString, 0, 6)}AdbWksp'
@@ -267,10 +268,18 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
 }
 
 module aks 'aks/cluster.template.bicep' = {
-  scope: resourceGroup(rg.name)
+  scope: rg
   name: 'aksCluster'
   params: {
     name: aksClusterName
+  }
+}
+
+module amlStorageAccount './storage/mlstorageaccount.template.bicep' = {
+  scope: rg
+  name: 'amlStorageAccount'
+  params: {
+    storageAccountName: amlStorageAccountName
   }
 }
 
@@ -281,13 +290,13 @@ module aml './aml/machinelearning.template.bicep' = {
     amlWorkspaceName: amlWorkspaceName
     containerRegistryName: containerRegistryName
     keyVaultIdentifierId: keyVault.outputs.keyvault_id
-    storageAccount: adlsGen2.outputs.storageaccount_id
+    storageAccount: amlStorageAccount.outputs.storageaccount_id
     identity: myIdentity.outputs.mIdentityId
     applicationInsightsName: applicationInsightsName
   }
 }
 
-module linkAmlAks './aks/aml-aks.deployment.bicep' = {
+module linkAmlAks './aml/aml-aks.deployment.bicep' = {
   scope: rg
   name: 'linkAmlAks'
   params: {
