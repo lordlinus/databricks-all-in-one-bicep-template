@@ -20,7 +20,7 @@ var uString = '${prefix}${uniqueSubString}'
 // var storageSuffix = environment().suffixes.storage
 
 var storageAccountName = '${substring(uString, 0, 10)}stg01'
-var keyVaultName = '${substring(uString, 0, 6)}akv01'
+var keyVaultName = '${substring(uString, 0, 6)}akv00'
 var resourceGroupName = '${substring(uString, 0, 6)}-rg'
 var adbWorkspaceName = '${substring(uString, 0, 6)}AdbWksp'
 var nsgName = '${substring(uString, 0, 6)}nsg'
