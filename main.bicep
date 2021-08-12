@@ -210,7 +210,7 @@ module clientpc './other/clientdevice.template.bicep' = {
   params: {
     adminUsername: adminUsername
     adminPassword: adminPassword
-    vnetName: hubVnetName
+    vnetName: vnets.outputs.hubVnetName
     clientPcName: clientPcName
   }
   dependsOn: [
@@ -240,11 +240,11 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     privateLinkSubnetId: vnets.outputs.privatelinksubnet_id
     storageAccountName: adlsGen2.name
     storageAccountPrivateLinkResource: adlsGen2.outputs.storageaccount_id
-    eventHubName: eventHubName
+    eventHubName: eventHubLogging.outputs.eHName
     eventHubPrivateLinkResource: eventHubLogging.outputs.eHNamespaceId
     AmlName: aml.name
     amlPrivateLinkResource: aml.outputs.amlId
-    vnetName: spokeVnetName
+    vnetName: vnets.outputs.spokeVnetName
   }
 }
 

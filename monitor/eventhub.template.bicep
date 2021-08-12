@@ -56,3 +56,5 @@ output eHubNameId string = namespaceName_eventHubName.id
 output eHAuthRulesId string = namespaceName_rule.id
 // output eHObjName object = keysObj
 output eHPConnString string = keysObj.primaryConnectionString
+output eHName string = eventHubName
+
