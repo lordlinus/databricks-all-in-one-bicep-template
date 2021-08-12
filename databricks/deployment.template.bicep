@@ -109,6 +109,9 @@ resource secretScopeLink 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     ]
     scriptContent: loadTextContent('deployment/create_secret_scope.sh')
   }
+  dependsOn: [
+    createAdbPATToken
+  ]
 }
 
 resource uploadFilesToAdb 'Microsoft.Resources/deploymentScripts@2020-10-01' = {

@@ -20,7 +20,7 @@ var uString = '${prefix}${uniqueSubString}'
 // var storageSuffix = environment().suffixes.storage
 
 var storageAccountName = '${substring(uString, 0, 10)}stg01'
-var keyVaultName = '${substring(uString, 0, 6)}akv01'
+var keyVaultName = '${substring(uString, 0, 6)}akv00'
 var resourceGroupName = '${substring(uString, 0, 6)}-rg'
 var adbWorkspaceName = '${substring(uString, 0, 6)}AdbWksp'
 var nsgName = '${substring(uString, 0, 6)}nsg'
@@ -33,6 +33,7 @@ var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
 var amlWorkspaceName = '${substring(uString, 0, 6)}AmlWksp'
 var containerRegistryName = '${substring(uString, 0, 6)}registry'
 var applicationInsightsName = '${substring(uString, 0, 6)}AppInsights'
+var aksClusterName = '${substring(uString, 0, 6)}aksClusterName'
 // var routeTableName = 'RouteTable'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace
@@ -241,8 +242,8 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
     storageAccountPrivateLinkResource: adlsGen2.outputs.storageaccount_id
     eventHubName: eventHubName
     eventHubPrivateLinkResource: eventHubLogging.outputs.eHNamespaceId
-    AmlName: createAML.name
-    amlPrivateLinkResource: createAML.outputs.amlId
+    AmlName: aml.name
+    amlPrivateLinkResource: aml.outputs.amlId
     vnetName: spokeVnetName
   }
 }
@@ -265,7 +266,15 @@ module createDatabricksCluster './databricks/deployment.template.bicep' = {
   }
 }
 
-module createAML './aml/machinelearning.template.bicep' = {
+module aks 'aks/cluster.template.bicep' = {
+  scope: rg
+  name: 'aksCluster'
+  params: {
+    name: aksClusterName
+  }
+}
+
+module aml './aml/machinelearning.template.bicep' = {
   scope: rg
   name: 'MachineLearning'
   params: {
@@ -275,6 +284,16 @@ module createAML './aml/machinelearning.template.bicep' = {
     storageAccount: adlsGen2.outputs.storageaccount_id
     identity: myIdentity.outputs.mIdentityId
     applicationInsightsName: applicationInsightsName
+  }
+}
+
+module linkAmlAks './aml/aml-aks.deployment.bicep' = {
+  scope: rg
+  name: 'linkAmlAks'
+  params: {
+    identity: myIdentity.outputs.mIdentityId
+    aksId: aks.outputs.id
+    workspaceName: aml.outputs.amlWkspName
   }
 }
 
@@ -295,5 +314,5 @@ module createAML './aml/machinelearning.template.bicep' = {
 // output eHubNameId string = eventHubLogging.outputs.eHubNameId
 // output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
-output dsOutputs object = createDatabricksCluster.outputs.patOutput
-output adbCluster object = createDatabricksCluster.outputs.adbCluster
+// output dsOutputs object = createDatabricksCluster.outputs.patOutput
+// output adbCluster object = createDatabricksCluster.outputs.adbCluster
