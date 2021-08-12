@@ -20,7 +20,6 @@ var uString = '${prefix}${uniqueSubString}'
 // var storageSuffix = environment().suffixes.storage
 
 var storageAccountName = '${substring(uString, 0, 10)}stg01'
-var amlStorageAccountName = '${substring(uString, 0, 10)}stg02'
 var keyVaultName = '${substring(uString, 0, 6)}akv01'
 var resourceGroupName = '${substring(uString, 0, 6)}-rg'
 var adbWorkspaceName = '${substring(uString, 0, 6)}AdbWksp'
@@ -275,14 +274,6 @@ module aks 'aks/cluster.template.bicep' = {
   }
 }
 
-module amlStorageAccount './storage/mlstorageaccount.template.bicep' = {
-  scope: rg
-  name: 'amlStorageAccount'
-  params: {
-    storageAccountName: amlStorageAccountName
-  }
-}
-
 module aml './aml/machinelearning.template.bicep' = {
   scope: rg
   name: 'MachineLearning'
@@ -290,7 +281,7 @@ module aml './aml/machinelearning.template.bicep' = {
     amlWorkspaceName: amlWorkspaceName
     containerRegistryName: containerRegistryName
     keyVaultIdentifierId: keyVault.outputs.keyvault_id
-    storageAccount: amlStorageAccount.outputs.storageaccount_id
+    storageAccount: adlsGen2.outputs.storageaccount_id
     identity: myIdentity.outputs.mIdentityId
     applicationInsightsName: applicationInsightsName
   }
@@ -323,5 +314,5 @@ module linkAmlAks './aml/aml-aks.deployment.bicep' = {
 // output eHubNameId string = eventHubLogging.outputs.eHubNameId
 // output eHAuthRulesId string = eventHubLogging.outputs.eHAuthRulesId
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
-output dsOutputs object = createDatabricksCluster.outputs.patOutput
-output adbCluster object = createDatabricksCluster.outputs.adbCluster
+// output dsOutputs object = createDatabricksCluster.outputs.patOutput
+// output adbCluster object = createDatabricksCluster.outputs.adbCluster
