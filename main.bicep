@@ -37,6 +37,7 @@ var firewallPublicIpName = '${substring(uString, 0, 6)}FWPIp'
 var fwRoutingTable = '${substring(uString, 0, 6)}AdbRoutingTbl'
 var clientPcName = '${substring(uString, 0, 6)}ClientPc'
 var eHNameSpace = '${substring(uString, 0, 6)}eh'
+var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
 var amlWorkspaceName = '${substring(uString, 0, 6)}AmlWksp'
 var containerRegistryName = '${substring(uString, 0, 6)}registry'
 var applicationInsightsName = '${substring(uString, 0, 6)}AppInsights'
@@ -256,23 +257,23 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
   }
 }
 
-// module createDatabricksCluster './databricks/deployment.template.bicep' = {
-//   scope: rg
-//   name: 'DatabricksCluster'
-//   params: {
-//     location: location
-//     identity: myIdentity.outputs.mIdentityId
-//     adb_workspace_url: adb.outputs.databricks_workspaceUrl
-//     adb_workspace_id: adb.outputs.databricks_workspace_id
-//     adb_secret_scope_name: adbAkvLinkName
-//     akv_id: keyVault.outputs.keyvault_id
-//     akv_uri: keyVault.outputs.keyvault_uri
-//     LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
-//     LogAWkspKey: loganalytics.outputs.primarySharedKey
-//     storageKey: adlsGen2.outputs.key1
-//     evenHubKey: eventHubLogging.outputs.eHPConnString
-//   }
-// }
+module createDatabricksCluster './databricks/deployment.template.bicep' = {
+  scope: rg
+  name: 'DatabricksCluster'
+  params: {
+    location: location
+    identity: myIdentity.outputs.mIdentityId
+    adb_workspace_url: adb.outputs.databricks_workspaceUrl
+    adb_workspace_id: adb.outputs.databricks_workspace_id
+    adb_secret_scope_name: adbAkvLinkName
+    akv_id: keyVault.outputs.keyvault_id
+    akv_uri: keyVault.outputs.keyvault_uri
+    LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
+    LogAWkspKey: loganalytics.outputs.primarySharedKey
+    storageKey: adlsGen2.outputs.key1
+    evenHubKey: eventHubLogging.outputs.eHPConnString
+  }
+}
 
 module aml './aml/machinelearning.template.bicep' = {
   scope: rg
@@ -317,4 +318,4 @@ module AksForAml './aks/aks-for-aml.template.bicep' = {
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
 // output dsOutputs object = createDatabricksCluster.outputs.patOutput
 // output adbCluster object = createDatabricksCluster.outputs.adbCluster
-output amlProperties object = aml.outputs.amlProperties
+// output amlProperties object = aml.outputs.amlProperties

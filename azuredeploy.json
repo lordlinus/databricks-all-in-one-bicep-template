@@ -5,13 +5,13 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.451.19169",
-      "templateHash": "3017137578883143151"
+      "templateHash": "1003514901379342346"
     }
   },
   "parameters": {
     "prefix": {
       "type": "string",
-      "defaultValue": "ss",
+      "defaultValue": "ab",
       "metadata": {
         "description": "2-4 chars to prefix the Azure resources, NOTE: no number or symbols"
       },
@@ -31,6 +31,22 @@
         "description": "Client PC password, with atleast 8 char length containing uppercase, digits and special characters "
       }
     },
+    "aksAgentCount": {
+      "type": "int",
+      "defaultValue": 3,
+      "maxValue": 50,
+      "minValue": 3,
+      "metadata": {
+        "description": "The number of nodes for the cluster."
+      }
+    },
+    "aksAgentVMSize": {
+      "type": "string",
+      "defaultValue": "Standard_A4_v2",
+      "metadata": {
+        "description": "The size of the VM instances"
+      }
+    },
     "location": {
       "type": "string",
       "defaultValue": "southeastasia",
@@ -40,7 +56,7 @@
     },
     "hubVnetName": {
       "type": "string",
-      "defaultValue": "hubVnetName",
+      "defaultValue": "hubvnet",
       "metadata": {
         "description": ""
       }
@@ -52,16 +68,30 @@
         "description": ""
       }
     },
-    "SpokeVnetCidr": {
+    "HubVnetCidr": {
       "type": "string",
-      "defaultValue": "10.179.0.0/16",
+      "defaultValue": "10.0.0.0/16",
       "metadata": {
         "description": ""
       }
     },
-    "HubVnetCidr": {
+    "FirewallSubnetCidr": {
       "type": "string",
-      "defaultValue": "10.0.0.0/16",
+      "defaultValue": "10.0.1.0/26",
+      "metadata": {
+        "description": ""
+      }
+    },
+    "clientDevicesSubnetCidr": {
+      "type": "string",
+      "defaultValue": "10.0.200.0/24",
+      "metadata": {
+        "description": ""
+      }
+    },
+    "SpokeVnetCidr": {
+      "type": "string",
+      "defaultValue": "10.179.0.0/16",
       "metadata": {
         "description": ""
       }
@@ -80,16 +110,16 @@
         "description": ""
       }
     },
-    "FirewallSubnetCidr": {
+    "AksSubnetCidr": {
       "type": "string",
-      "defaultValue": "10.0.1.0/26",
+      "defaultValue": "10.179.128.0/18",
       "metadata": {
         "description": ""
       }
     },
     "PrivateLinkSubnetCidr": {
       "type": "string",
-      "defaultValue": "10.179.128.0/26",
+      "defaultValue": "10.179.192.0/18",
       "metadata": {
         "description": ""
       }
@@ -107,7 +137,7 @@
     "logBlobstorageDomains": {
       "type": "array",
       "defaultValue": [
-        "dblogprodseasia.blob.core.windows.net"
+        "[format('dblogprodseasia.blob.{0}', environment().suffixes.storage)]"
       ],
       "metadata": {
         "description": "Southeastasia ADB log blob"
@@ -152,11 +182,11 @@
     "artifactBlobStoragePrimaryDomains": {
       "type": "array",
       "defaultValue": [
-        "dbartifactsprodseap.blob.core.windows.net",
-        "arprodseapa1.blob.core.windows.net",
-        "arprodseapa2.blob.core.windows.net",
-        "arprodseapa3.blob.core.windows.net",
-        "dbartifactsprodeap.blob.core.windows.net"
+        "[format('dbartifactsprodseap.blob.{0}', environment().suffixes.storage)]",
+        "[format('arprodseapa1.blob.{0}', environment().suffixes.storage)]",
+        "[format('arprodseapa2.blob.{0}', environment().suffixes.storage)]",
+        "[format('arprodseapa3.blob.{0}', environment().suffixes.storage)]",
+        "[format('dbartifactsprodeap.blob.{0}', environment().suffixes.storage)]"
       ],
       "metadata": {
         "description": "Southeastasia Artifacts Blob"
@@ -168,7 +198,7 @@
     "uniqueSubString": "[uniqueString(guid(subscription().subscriptionId))]",
     "uString": "[format('{0}{1}', parameters('prefix'), variables('uniqueSubString'))]",
     "storageAccountName": "[format('{0}stg01', substring(variables('uString'), 0, 10))]",
-    "keyVaultName": "[format('{0}kv01', substring(variables('uString'), 0, 6))]",
+    "keyVaultName": "[format('{0}akv00', substring(variables('uString'), 0, 6))]",
     "resourceGroupName": "[format('{0}-rg', substring(variables('uString'), 0, 6))]",
     "adbWorkspaceName": "[format('{0}AdbWksp', substring(variables('uString'), 0, 6))]",
     "nsgName": "[format('{0}nsg', substring(variables('uString'), 0, 6))]",
@@ -177,7 +207,11 @@
     "fwRoutingTable": "[format('{0}AdbRoutingTbl', substring(variables('uString'), 0, 6))]",
     "clientPcName": "[format('{0}ClientPc', substring(variables('uString'), 0, 6))]",
     "eHNameSpace": "[format('{0}eh', substring(variables('uString'), 0, 6))]",
-    "adbAkvLinkName": "[format('{0}SecretScope', substring(variables('uString'), 0, 6))]",
+    "amlWorkspaceName": "[format('{0}AmlWksp', substring(variables('uString'), 0, 6))]",
+    "containerRegistryName": "[format('{0}registry', substring(variables('uString'), 0, 6))]",
+    "applicationInsightsName": "[format('{0}AppInsights', substring(variables('uString'), 0, 6))]",
+    "sslLeafName": "[toLower(substring(variables('uString'), 0, 6))]",
+    "aksAmlComputeName": "aks-for-aml",
     "eventHubName": "[variables('eHNameSpace')]",
     "managedIdentityName": "[format('{0}Identity', substring(variables('uString'), 0, 6))]"
   },
@@ -191,7 +225,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "myIdentity",
+      "name": "ManagedIdentity",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -257,84 +291,6 @@
             "mIdentityClientId": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('managedIdentityName'))).clientId]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2019-10-01",
-      "name": "RouteTable",
-      "resourceGroup": "[variables('resourceGroupName')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "routeTableName": {
-            "value": "[variables('fwRoutingTable')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.4.451.19169",
-              "templateHash": "16116046890647730826"
-            }
-          },
-          "parameters": {
-            "routeTableLocation": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().location]",
-              "metadata": {
-                "description": "Azure datacentre Location to deploy the Firewall and IP Address"
-              }
-            },
-            "routeTableName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the Routing Table"
-              }
-            }
-          },
-          "functions": [],
-          "resources": [
-            {
-              "type": "Microsoft.Network/routeTables",
-              "apiVersion": "2020-08-01",
-              "name": "[parameters('routeTableName')]",
-              "location": "[parameters('routeTableLocation')]",
-              "properties": {
-                "disableBgpRoutePropagation": false
-              }
-            },
-            {
-              "type": "Microsoft.Network/routeTables/routes",
-              "apiVersion": "2020-08-01",
-              "name": "[format('{0}/{1}', parameters('routeTableName'), 'Firewall-Route')]",
-              "properties": {
-                "addressPrefix": "0.0.0.0/0",
-                "nextHopType": "VirtualAppliance",
-                "nextHopIpAddress": "10.0.1.4",
-                "hasBgpOverride": false
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/routeTables', parameters('routeTableName'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "routeTblName": {
-              "type": "string",
-              "value": "[parameters('routeTableName')]"
             }
           }
         }
@@ -495,7 +451,71 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "HubandSpokeVNET",
+      "name": "RouteTable",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "routeTableName": {
+            "value": "[variables('fwRoutingTable')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.451.19169",
+              "templateHash": "7474072428117046757"
+            }
+          },
+          "parameters": {
+            "routeTableLocation": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Azure datacentre Location to deploy the Firewall and IP Address"
+              }
+            },
+            "routeTableName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Routing Table"
+              }
+            }
+          },
+          "functions": [],
+          "resources": [
+            {
+              "type": "Microsoft.Network/routeTables",
+              "apiVersion": "2020-08-01",
+              "name": "[parameters('routeTableName')]",
+              "location": "[parameters('routeTableLocation')]",
+              "properties": {
+                "disableBgpRoutePropagation": false
+              }
+            }
+          ],
+          "outputs": {
+            "routeTblName": {
+              "type": "string",
+              "value": "[parameters('routeTableName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "HubandSpokeVnets",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -532,6 +552,12 @@
           },
           "privatelinkSubnetCidr": {
             "value": "[parameters('PrivateLinkSubnetCidr')]"
+          },
+          "clinetDevicesSubnetCidr": {
+            "value": "[parameters('clientDevicesSubnetCidr')]"
+          },
+          "AksSubnetCidr": {
+            "value": "[parameters('AksSubnetCidr')]"
           }
         },
         "template": {
@@ -541,7 +567,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "12487465734359481038"
+              "templateHash": "11449947211684753628"
             }
           },
           "parameters": {
@@ -639,6 +665,22 @@
               "metadata": {
                 "description": "Cidr range for the private link subnet.."
               }
+            },
+            "aksSubnetName": {
+              "type": "string",
+              "defaultValue": "aks-subnet",
+              "metadata": {
+                "description": "The name of the private subnet to create."
+              }
+            },
+            "AksSubnetCidr": {
+              "type": "string",
+              "metadata": {
+                "description": "Cidr range for the AKS subnet.."
+              }
+            },
+            "clinetDevicesSubnetCidr": {
+              "type": "string"
             }
           },
           "functions": [],
@@ -674,7 +716,7 @@
                   {
                     "name": "ClientDevices",
                     "properties": {
-                      "addressPrefix": "10.0.200.0/24",
+                      "addressPrefix": "[parameters('clinetDevicesSubnetCidr')]",
                       "routeTable": {
                         "id": "[resourceId('Microsoft.Network/routeTables', parameters('routeTableName'))]"
                       }
@@ -724,6 +766,14 @@
                       "routeTable": {
                         "id": "[resourceId('Microsoft.Network/routeTables', parameters('routeTableName'))]"
                       },
+                      "serviceEndpoints": [
+                        {
+                          "service": "Microsoft.Storage",
+                          "locations": [
+                            "[resourceGroup().location]"
+                          ]
+                        }
+                      ],
                       "delegations": [
                         {
                           "name": "databricks-del-public",
@@ -762,6 +812,13 @@
                       "privateEndpointNetworkPolicies": "Disabled",
                       "privateLinkServiceNetworkPolicies": "Enabled"
                     }
+                  },
+                  {
+                    "name": "[parameters('aksSubnetName')]",
+                    "properties": {
+                      "addressPrefix": "[parameters('AksSubnetCidr')]",
+                      "delegations": []
+                    }
                   }
                 ],
                 "enableDdosProtection": false
@@ -790,6 +847,18 @@
             "privatelinksubnet_id": {
               "type": "string",
               "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('spokeVnetName'), parameters('privatelinkSubnetName'))]"
+            },
+            "databricksPublicSubnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('spokeVnetName'), parameters('publicSubnetName'))]"
+            },
+            "spokeVnetName": {
+              "type": "string",
+              "value": "[parameters('spokeVnetName')]"
+            },
+            "hubVnetName": {
+              "type": "string",
+              "value": "[parameters('hubVnetName')]"
             }
           }
         }
@@ -798,6 +867,149 @@
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'NetworkSecurityGroup')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'RouteTable')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "StorageAccount",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[variables('storageAccountName')]"
+          },
+          "databricksPublicSubnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets'), '2019-10-01').outputs.databricksPublicSubnetId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.451.19169",
+              "templateHash": "17508896932927189187"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account"
+              },
+              "maxLength": 24,
+              "minLength": 3
+            },
+            "storageContainerName": {
+              "type": "string",
+              "defaultValue": "data"
+            },
+            "databricksPublicSubnetId": {
+              "type": "string"
+            },
+            "storageAccountSku": {
+              "type": "string",
+              "defaultValue": "Standard_LRS",
+              "metadata": {
+                "description": "Storage Account Sku"
+              },
+              "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_ZRS",
+                "Premium_LRS"
+              ]
+            },
+            "encryptionEnabled": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Enable or disable Blob encryption at Rest."
+              }
+            }
+          },
+          "functions": [],
+          "variables": {
+            "location": "[resourceGroup().location]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2019-06-01",
+              "name": "[parameters('storageAccountName')]",
+              "tags": {
+                "displayName": "[parameters('storageAccountName')]",
+                "type": "Storage"
+              },
+              "location": "[variables('location')]",
+              "kind": "StorageV2",
+              "properties": {
+                "isHnsEnabled": true,
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true,
+                "accessTier": "Hot",
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "virtualNetworkRules": [
+                    {
+                      "id": "[parameters('databricksPublicSubnetId')]",
+                      "action": "Allow",
+                      "state": "succeeded"
+                    }
+                  ],
+                  "ipRules": [],
+                  "defaultAction": "Deny"
+                },
+                "encryption": {
+                  "keySource": "Microsoft.Storage",
+                  "services": {
+                    "blob": {
+                      "enabled": "[parameters('encryptionEnabled')]"
+                    },
+                    "file": {
+                      "enabled": "[parameters('encryptionEnabled')]"
+                    }
+                  }
+                }
+              },
+              "sku": {
+                "name": "[parameters('storageAccountSku')]"
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2019-06-01",
+              "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageContainerName'))]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "key1": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[0].value]"
+            },
+            "key2": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[1].value]"
+            },
+            "storageaccount_id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets')]"
       ]
     },
     {
@@ -812,7 +1024,7 @@
         "mode": "Incremental",
         "parameters": {
           "vnetName": {
-            "value": "[parameters('spokeVnetName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets'), '2019-10-01').outputs.spokeVnetName.value]"
           },
           "adbWorkspaceSkuTier": {
             "value": "premium"
@@ -943,7 +1155,7 @@
       },
       "dependsOn": [
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets')]"
       ]
     },
     {
@@ -964,7 +1176,7 @@
             "value": "[variables('firewallPublicIpName')]"
           },
           "vnetName": {
-            "value": "[parameters('hubVnetName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets'), '2019-10-01').outputs.hubVnetName.value]"
           },
           "webappDestinationAddresses": {
             "value": "[parameters('webappDestinationAddresses')]"
@@ -988,10 +1200,10 @@
             "value": "[parameters('artifactBlobStoragePrimaryDomains')]"
           },
           "dbfsBlobStrageDomain": {
-            "value": "[array(format('{0}.blob.core.windows.net', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_dbfs_storage_accountName.value))]"
+            "value": "[array(format('{0}.blob.{1}', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_dbfs_storage_accountName.value, environment().suffixes.storage))]"
           },
           "clientPrivateIpAddr": {
-            "value": "10.0.200.4"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'ClientPC'), '2019-10-01').outputs.clientPrivateIpaddr.value]"
           }
         },
         "template": {
@@ -1001,11 +1213,11 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "11721340420439469086"
+              "templateHash": "12390420139180770216"
             }
           },
           "parameters": {
-            "firewalllocation": {
+            "firewallLocation": {
               "type": "string",
               "defaultValue": "[resourceGroup().location]",
               "metadata": {
@@ -1098,31 +1310,34 @@
               "metadata": {
                 "description": "the domain name of DBFS root Blob storage"
               }
+            },
+            "fwpublicipcount": {
+              "type": "int",
+              "defaultValue": 1,
+              "metadata": {
+                "description": "Specifies the number of public IPs to allocate to the firewall"
+              }
             }
           },
           "functions": [],
-          "variables": {
-            "storageSuffix": "[environment().suffixes.storage]"
-          },
           "resources": [
             {
               "type": "Microsoft.Network/publicIPAddresses",
-              "apiVersion": "2019-02-01",
+              "apiVersion": "2021-02-01",
               "name": "[parameters('publicIpAddressName')]",
-              "location": "[parameters('firewalllocation')]",
+              "location": "[parameters('firewallLocation')]",
               "sku": {
                 "name": "Standard"
               },
               "properties": {
                 "publicIPAllocationMethod": "Static"
-              },
-              "tags": {}
+              }
             },
             {
               "type": "Microsoft.Network/azureFirewalls",
-              "apiVersion": "2020-05-01",
+              "apiVersion": "2021-02-01",
               "name": "[parameters('firewallName')]",
-              "location": "[parameters('firewalllocation')]",
+              "location": "[parameters('firewallLocation')]",
               "properties": {
                 "ipConfigurations": [
                   {
@@ -1137,6 +1352,11 @@
                     }
                   }
                 ],
+                "hubIPAddresses": {
+                  "publicIPs": {
+                    "count": "[parameters('fwpublicipcount')]"
+                  }
+                },
                 "sku": {
                   "tier": "[parameters('firewallSKU')]"
                 },
@@ -1361,6 +1581,7 @@
                           ],
                           "fqdnTags": [],
                           "targetFqdns": [
+                            "pypi.org",
                             "*.pypi.org",
                             "*.pythonhosted.org"
                           ],
@@ -1428,9 +1649,33 @@
                           "fqdnTags": [],
                           "targetFqdns": [
                             "*.ods.opinsights.azure.com",
-                            "*.oms.opinsights.azure.com",
-                            "[format('*.blob.{0}', variables('storageSuffix'))]",
-                            "*.azure-automation.net"
+                            "*.oms.opinsights.azure.com"
+                          ],
+                          "sourceAddresses": [
+                            "*"
+                          ],
+                          "sourceIpGroups": []
+                        },
+                        {
+                          "name": "AzureManagement",
+                          "protocols": [
+                            {
+                              "protocolType": "Http",
+                              "port": 80
+                            },
+                            {
+                              "protocolType": "Https",
+                              "port": 443
+                            }
+                          ],
+                          "fqdnTags": [],
+                          "targetFqdns": [
+                            "[replace(replace(environment().authentication.loginEndpoint, 'https:', ''), '/', '')]",
+                            "[replace(replace(environment().resourceManager, 'https:', ''), '/', '')]",
+                            "[format('*.blob.{0}', environment().suffixes.storage)]",
+                            "*.azure-automation.net",
+                            "ml.azure.com",
+                            "*.msauth.net"
                           ],
                           "sourceAddresses": [
                             "*"
@@ -1442,23 +1687,30 @@
                   }
                 ]
               },
-              "tags": {},
               "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpAddressName'))]"
               ]
             }
-          ]
+          ],
+          "outputs": {
+            "firewallPrivateIp": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/azureFirewalls', parameters('firewallName'))).ipConfigurations[0].properties.privateIPAddress]"
+            }
+          }
         }
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace')]",
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'ClientPC')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "StorageAccount",
+      "name": "RouteTableUpdate",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1466,8 +1718,11 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "storageAccountName": {
-            "value": "[variables('storageAccountName')]"
+          "routeTableName": {
+            "value": "[variables('fwRoutingTable')]"
+          },
+          "firewallPrivateIp": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubFirewall'), '2019-10-01').outputs.firewallPrivateIp.value]"
           }
         },
         "template": {
@@ -1477,115 +1732,35 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "7815045266988337026"
+              "templateHash": "17467792457559355397"
             }
           },
           "parameters": {
-            "storageAccountName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the storage account"
-              },
-              "maxLength": 24,
-              "minLength": 3
+            "routeTableName": {
+              "type": "string"
             },
-            "storageContainerName": {
-              "type": "string",
-              "defaultValue": "data"
-            },
-            "storageAccountSku": {
-              "type": "string",
-              "defaultValue": "Standard_LRS",
-              "metadata": {
-                "description": "Storage Account Sku"
-              },
-              "allowedValues": [
-                "Standard_LRS",
-                "Standard_GRS",
-                "Standard_ZRS",
-                "Premium_LRS"
-              ]
-            },
-            "storageAccountLocation": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().location]",
-              "metadata": {
-                "description": "Location for all resources."
-              }
-            },
-            "encryptionEnabled": {
-              "type": "bool",
-              "defaultValue": true,
-              "metadata": {
-                "description": "Enable or disable Blob encryption at Rest."
-              }
+            "firewallPrivateIp": {
+              "type": "string"
             }
           },
           "functions": [],
           "resources": [
             {
-              "type": "Microsoft.Storage/storageAccounts",
-              "apiVersion": "2019-06-01",
-              "name": "[parameters('storageAccountName')]",
-              "tags": {
-                "displayName": "[parameters('storageAccountName')]",
-                "type": "Storage"
-              },
-              "location": "[parameters('storageAccountLocation')]",
-              "kind": "StorageV2",
+              "type": "Microsoft.Network/routeTables/routes",
+              "apiVersion": "2020-08-01",
+              "name": "[format('{0}/Firewall-Route', parameters('routeTableName'))]",
               "properties": {
-                "isHnsEnabled": true,
-                "minimumTlsVersion": "TLS1_2",
-                "supportsHttpsTrafficOnly": true,
-                "accessTier": "Hot",
-                "networkAcls": {
-                  "bypass": "AzureServices",
-                  "virtualNetworkRules": [],
-                  "ipRules": [],
-                  "defaultAction": "Deny"
-                },
-                "encryption": {
-                  "keySource": "Microsoft.Storage",
-                  "services": {
-                    "blob": {
-                      "enabled": "[parameters('encryptionEnabled')]"
-                    },
-                    "file": {
-                      "enabled": "[parameters('encryptionEnabled')]"
-                    }
-                  }
-                }
-              },
-              "sku": {
-                "name": "[parameters('storageAccountSku')]"
+                "addressPrefix": "0.0.0.0/0",
+                "nextHopType": "VirtualAppliance",
+                "nextHopIpAddress": "[parameters('firewallPrivateIp')]",
+                "hasBgpOverride": false
               }
-            },
-            {
-              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
-              "apiVersion": "2019-06-01",
-              "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('storageContainerName'))]",
-              "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-              ]
             }
-          ],
-          "outputs": {
-            "key1": {
-              "type": "string",
-              "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[0].value]"
-            },
-            "key2": {
-              "type": "string",
-              "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2021-04-01').keys[1].value]"
-            },
-            "storageaccount_id": {
-              "type": "string",
-              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-            }
-          }
+          ]
         }
       },
       "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubFirewall')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
@@ -1604,7 +1779,7 @@
             "value": "[variables('keyVaultName')]"
           },
           "objectId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity'), '2019-10-01').outputs.mIdentityClientId.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'ManagedIdentity'), '2019-10-01').outputs.mIdentityClientId.value]"
           }
         },
         "template": {
@@ -1614,7 +1789,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "16175831627176355994"
+              "templateHash": "16023483034167971529"
             }
           },
           "parameters": {
@@ -1710,6 +1885,7 @@
                   "name": "[parameters('keyVaultSkuTier')]",
                   "family": "A"
                 },
+                "softDeleteRetentionInDays": 7,
                 "networkAcls": {
                   "defaultAction": "Deny",
                   "bypass": "AzureServices",
@@ -1733,7 +1909,7 @@
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'ManagedIdentity')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     },
@@ -1755,7 +1931,7 @@
             "value": "[parameters('adminPassword')]"
           },
           "vnetName": {
-            "value": "[parameters('hubVnetName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets'), '2019-10-01').outputs.hubVnetName.value]"
           },
           "clientPcName": {
             "value": "[variables('clientPcName')]"
@@ -1915,13 +2091,14 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "loganalytics",
+      "name": "LogAnalytics",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2217,7 +2394,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "14066483699834677295"
+              "templateHash": "12808161703233656485"
             }
           },
           "parameters": {
@@ -2309,6 +2486,10 @@
             "eHPConnString": {
               "type": "string",
               "value": "[listKeys(resourceId('Microsoft.EventHub/namespaces/eventhubs/authorizationRules', parameters('namespaceName'), parameters('eventHubName'), parameters('eHRuleName')), '2021-01-01-preview').primaryConnectionString]"
+            },
+            "eHName": {
+              "type": "string",
+              "value": "[parameters('eventHubName')]"
             }
           }
         }
@@ -2335,7 +2516,7 @@
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault'), '2019-10-01').outputs.keyvault_id.value]"
           },
           "privateLinkSubnetId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET'), '2019-10-01').outputs.privatelinksubnet_id.value]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets'), '2019-10-01').outputs.privatelinksubnet_id.value]"
           },
           "storageAccountName": {
             "value": "StorageAccount"
@@ -2344,22 +2525,19 @@
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount'), '2019-10-01').outputs.storageaccount_id.value]"
           },
           "eventHubName": {
-            "value": "[variables('eventHubName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub'), '2019-10-01').outputs.eHName.value]"
           },
           "eventHubPrivateLinkResource": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub'), '2019-10-01').outputs.eHNamespaceId.value]"
           },
-          "targetSubResourceDfs": {
-            "value": "dfs"
+          "AmlName": {
+            "value": "MLWorkspace"
           },
-          "targetSubResourceVault": {
-            "value": "vault"
-          },
-          "targetSubResourceEventHub": {
-            "value": "namespace"
+          "amlPrivateLinkResource": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'MLWorkspace'), '2019-10-01').outputs.amlId.value]"
           },
           "vnetName": {
-            "value": "[parameters('spokeVnetName')]"
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets'), '2019-10-01').outputs.spokeVnetName.value]"
           }
         },
         "template": {
@@ -2369,7 +2547,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "14940815867582215066"
+              "templateHash": "17537020811066953211"
             }
           },
           "parameters": {
@@ -2409,24 +2587,6 @@
                 "description": "EventHub Private Link resource."
               }
             },
-            "targetSubResourceDfs": {
-              "type": "string",
-              "metadata": {
-                "description": "Privatelink target sub resource DFS"
-              }
-            },
-            "targetSubResourceVault": {
-              "type": "string",
-              "metadata": {
-                "description": "Privatelink target sub resource vault"
-              }
-            },
-            "targetSubResourceEventHub": {
-              "type": "string",
-              "metadata": {
-                "description": "Privatelink target sub resource Event Hub"
-              }
-            },
             "vnetName": {
               "type": "string",
               "metadata": {
@@ -2445,16 +2605,29 @@
               "metadata": {
                 "description": "Privatelink subnet Id"
               }
+            },
+            "AmlName": {
+              "type": "string"
+            },
+            "amlPrivateLinkResource": {
+              "type": "string"
             }
           },
           "functions": [],
           "variables": {
+            "targetSubResourceDfs": "dfs",
+            "targetSubResourceVault": "vault",
+            "targetSubResourceEventHub": "namespace",
+            "targetSubResourceAml": "amlworkspace",
             "privateDnsNameStorage_var": "[format('privatelink.dfs.{0}', environment().suffixes.storage)]",
             "storageAccountPrivateEndpointName_var": "[format('{0}privateendpoint', parameters('storageAccountName'))]",
             "privateDnsNameVault_var": "privatelink.vaultcore.azure.net",
             "keyvaultPrivateEndpointName_var": "[format('{0}privateendpoint', parameters('keyvaultName'))]",
             "privateDnsNameEventHub_var": "privatelink.servicebus.windows.net",
-            "eventHubPrivateEndpointName_var": "[format('{0}privateendpoint', parameters('eventHubName'))]"
+            "eventHubPrivateEndpointName_var": "[format('{0}privateendpoint', parameters('eventHubName'))]",
+            "privateDnsNameAmlApi_var": "privatelink.api.azureml.ms",
+            "privateDnsNameAmlNotebook_var": "privatelink.notebooks.azure.net",
+            "amlPrivateEndpointName_var": "[format('{0}privateendpoint', parameters('AmlName'))]"
           },
           "resources": [
             {
@@ -2469,7 +2642,7 @@
                     "properties": {
                       "privateLinkServiceId": "[parameters('storageAccountPrivateLinkResource')]",
                       "groupIds": [
-                        "[parameters('targetSubResourceDfs')]"
+                        "[variables('targetSubResourceDfs')]"
                       ]
                     }
                   }
@@ -2477,8 +2650,7 @@
                 "subnet": {
                   "id": "[parameters('privateLinkSubnetId')]"
                 }
-              },
-              "tags": {}
+              }
             },
             {
               "type": "Microsoft.Network/privateDnsZones",
@@ -2537,7 +2709,7 @@
                     "properties": {
                       "privateLinkServiceId": "[parameters('keyvaultPrivateLinkResource')]",
                       "groupIds": [
-                        "[parameters('targetSubResourceVault')]"
+                        "[variables('targetSubResourceVault')]"
                       ]
                     }
                   }
@@ -2594,21 +2766,6 @@
               ]
             },
             {
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', variables('privateDnsNameEventHub_var'), parameters('vnetName'))]",
-              "location": "global",
-              "properties": {
-                "virtualNetwork": {
-                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
-                },
-                "registrationEnabled": false
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameEventHub_var'))]"
-              ]
-            },
-            {
               "type": "Microsoft.Network/privateEndpoints",
               "apiVersion": "2021-02-01",
               "name": "[variables('eventHubPrivateEndpointName_var')]",
@@ -2620,7 +2777,7 @@
                     "properties": {
                       "privateLinkServiceId": "[parameters('eventHubPrivateLinkResource')]",
                       "groupIds": [
-                        "[parameters('targetSubResourceEventHub')]"
+                        "[variables('targetSubResourceEventHub')]"
                       ]
                     }
                   }
@@ -2642,6 +2799,21 @@
               ]
             },
             {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', variables('privateDnsNameEventHub_var'), parameters('vnetName'))]",
+              "location": "global",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameEventHub_var'))]"
+              ]
+            },
+            {
               "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
               "apiVersion": "2021-02-01",
               "name": "[format('{0}/{1}', variables('eventHubPrivateEndpointName_var'), 'default')]",
@@ -2659,22 +2831,115 @@
                 "[resourceId('Microsoft.Network/privateEndpoints', variables('eventHubPrivateEndpointName_var'))]",
                 "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameEventHub_var'))]"
               ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2021-02-01",
+              "name": "[variables('amlPrivateEndpointName_var')]",
+              "location": "[parameters('privateLinkLocation')]",
+              "properties": {
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "[variables('amlPrivateEndpointName_var')]",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('amlPrivateLinkResource')]",
+                      "groupIds": [
+                        "[variables('targetSubResourceAml')]"
+                      ]
+                    }
+                  }
+                ],
+                "subnet": {
+                  "id": "[parameters('privateLinkSubnetId')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2018-09-01",
+              "name": "[variables('privateDnsNameAmlApi_var')]",
+              "location": "global",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2018-09-01",
+              "name": "[format('{0}/{1}', variables('privateDnsNameAmlApi_var'), 'privatelink_api_azureml_ms')]",
+              "location": "global",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameAmlApi_var'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2018-09-01",
+              "name": "[variables('privateDnsNameAmlNotebook_var')]",
+              "location": "global",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2018-09-01",
+              "name": "[format('{0}/{1}', variables('privateDnsNameAmlNotebook_var'), 'privatelink_notebooks_azure_net')]",
+              "location": "global",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameAmlNotebook_var'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2020-03-01",
+              "name": "[format('{0}/{1}', variables('amlPrivateEndpointName_var'), 'default')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "privatelink-api-azureml-ms",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameAmlApi_var'))]"
+                    }
+                  },
+                  {
+                    "name": "privatelink-notebooks-azure-net",
+                    "properties": {
+                      "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameAmlNotebook_var'))]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('amlPrivateEndpointName_var'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameAmlApi_var'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsNameAmlNotebook_var'))]"
+              ]
             }
           ]
         }
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'MLWorkspace')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVNET')]"
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'HubandSpokeVnets')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "createDatabricksCluster",
+      "name": "MLWorkspace",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2682,38 +2947,20 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
+          "amlWorkspaceName": {
+            "value": "[variables('amlWorkspaceName')]"
           },
-          "identity": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity'), '2019-10-01').outputs.mIdentityId.value]"
+          "containerRegistryName": {
+            "value": "[variables('containerRegistryName')]"
           },
-          "adb_workspace_url": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_workspaceUrl.value]"
-          },
-          "adb_workspace_id": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_workspace_id.value]"
-          },
-          "adb_secret_scope_name": {
-            "value": "[variables('adbAkvLinkName')]"
-          },
-          "akv_id": {
+          "keyVaultIdentifierId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault'), '2019-10-01').outputs.keyvault_id.value]"
           },
-          "akv_uri": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault'), '2019-10-01').outputs.keyvault_uri.value]"
+          "storageAccount": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount'), '2019-10-01').outputs.storageaccount_id.value]"
           },
-          "LogAWkspId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'loganalytics'), '2019-10-01').outputs.logAnalyticsWkspId.value]"
-          },
-          "LogAWkspKey": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'loganalytics'), '2019-10-01').outputs.primarySharedKey.value]"
-          },
-          "storageKey": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount'), '2019-10-01').outputs.key1.value]"
-          },
-          "evenHubKey": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub'), '2019-10-01').outputs.eHPConnString.value]"
+          "applicationInsightsName": {
+            "value": "[variables('applicationInsightsName')]"
           }
         },
         "template": {
@@ -2723,312 +2970,186 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.451.19169",
-              "templateHash": "3529451445607424346"
+              "templateHash": "6142225160810949830"
             }
           },
           "parameters": {
-            "location": {
+            "keyVaultIdentifierId": {
               "type": "string"
             },
-            "force_update": {
-              "type": "string",
-              "defaultValue": "[utcNow()]"
-            },
-            "identity": {
+            "storageAccount": {
               "type": "string"
             },
-            "akv_id": {
+            "amlWorkspaceName": {
               "type": "string"
             },
-            "akv_uri": {
+            "containerRegistryName": {
               "type": "string"
             },
-            "adb_pat_lifetime": {
-              "type": "string",
-              "defaultValue": "3600"
-            },
-            "adb_workspace_url": {
-              "type": "string"
-            },
-            "adb_workspace_id": {
-              "type": "string"
-            },
-            "adb_secret_scope_name": {
-              "type": "string"
-            },
-            "adb_cluster_name": {
-              "type": "string",
-              "defaultValue": "test-cluster-01"
-            },
-            "adb_spark_version": {
-              "type": "string",
-              "defaultValue": "7.3.x-scala2.12"
-            },
-            "adb_node_type": {
-              "type": "string",
-              "defaultValue": "Standard_D3_v2"
-            },
-            "adb_num_worker": {
-              "type": "string",
-              "defaultValue": "3"
-            },
-            "adb_auto_terminate_min": {
-              "type": "string",
-              "defaultValue": "30"
-            },
-            "LogAWkspId": {
-              "type": "string"
-            },
-            "LogAWkspKey": {
-              "type": "string"
-            },
-            "storageKey": {
-              "type": "string"
-            },
-            "evenHubKey": {
+            "applicationInsightsName": {
               "type": "string"
             }
           },
           "functions": [],
           "resources": [
             {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "createAdbPATToken",
-              "location": "[parameters('location')]",
-              "kind": "AzureCLI",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[parameters('identity')]": {}
-                }
-              },
-              "properties": {
-                "azCliVersion": "2.26.0",
-                "timeout": "PT5M",
-                "cleanupPreference": "OnExpiration",
-                "retentionInterval": "PT1H",
-                "environmentVariables": [
-                  {
-                    "name": "ADB_WORKSPACE_URL",
-                    "value": "[parameters('adb_workspace_url')]"
-                  },
-                  {
-                    "name": "ADB_WORKSPACE_ID",
-                    "value": "[parameters('adb_workspace_id')]"
-                  },
-                  {
-                    "name": "PAT_LIFETIME",
-                    "value": "[parameters('adb_pat_lifetime')]"
-                  }
-                ],
-                "scriptContent": "#/bin/bash -e\npat_token_config=$(jq -n -c \\\n    --arg ls \"$PAT_LIFETIME\" \\\n    --arg co \"Example Token\" \\\n    '{lifetime_seconds: ($ls|tonumber),\n     comment: $co}')\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\njson=$(echo \"$pat_token_config\" | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/token/create\")\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n"
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2021-06-01-preview",
+              "name": "[parameters('containerRegistryName')]",
+              "location": "[resourceGroup().location]",
+              "sku": {
+                "name": "Basic"
               }
             },
             {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "secretScopeLink",
-              "location": "[parameters('location')]",
-              "kind": "AzureCLI",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[parameters('identity')]": {}
-                }
-              },
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2018-05-01-preview",
+              "name": "[parameters('applicationInsightsName')]",
+              "location": "[resourceGroup().location]",
+              "kind": "web",
               "properties": {
-                "azCliVersion": "2.26.0",
-                "timeout": "PT1H",
-                "cleanupPreference": "OnExpiration",
-                "retentionInterval": "PT1H",
-                "environmentVariables": [
-                  {
-                    "name": "ADB_WORKSPACE_URL",
-                    "value": "[parameters('adb_workspace_url')]"
-                  },
-                  {
-                    "name": "ADB_WORKSPACE_ID",
-                    "value": "[parameters('adb_workspace_id')]"
-                  },
-                  {
-                    "name": "ADB_SECRET_SCOPE_NAME",
-                    "value": "[parameters('adb_secret_scope_name')]"
-                  },
-                  {
-                    "name": "AKV_ID",
-                    "value": "[parameters('akv_id')]"
-                  },
-                  {
-                    "name": "AKV_URI",
-                    "value": "[parameters('akv_uri')]"
-                  },
-                  {
-                    "name": "ADB_LOG_WKSP_ID",
-                    "value": "[parameters('LogAWkspId')]"
-                  },
-                  {
-                    "name": "ADB_LOG_WKSP_KEY",
-                    "value": "[parameters('LogAWkspKey')]"
-                  },
-                  {
-                    "name": "STORAGE_ACCESS_KEY",
-                    "value": "[parameters('storageKey')]"
-                  },
-                  {
-                    "name": "EVENT_HUB_KEY",
-                    "value": "[parameters('evenHubKey')]"
-                  },
-                  {
-                    "name": "ADB_PAT_TOKEN",
-                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken')).outputs.token_value]"
-                  }
-                ],
-                "scriptContent": "#/bin/bash -e\n\n# TODO: Create AKV backed secret scope using User assigned managed identity\nakv_backed='{\"resource_id\": \"'${AKV_ID}'\",\"dns_name\": \"'${AKV_URI}'\"}'\nakv_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        --arg bak \"$akv_backed\" \\\n        '{\n        scope: $sc,\n        scope_backend_type: \"AZURE_KEYVAULT\",\n        initial_manage_principal: \"users\",\n        backend_azure_keyvault: ($bak|fromjson)\n     }'\n)\n\n# Create secret scope backed by ADB\nadb_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        '{\n        scope: $sc,\n        initial_manage_principal: \"users\"\n     }'\n)\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create ADB secret scope backed by Key Vault\"\njson=$(echo $adb_secret_scope_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/scopes/create\")\n\nfunction createKey() {\n    local keyName=$1\n    local secretValue=$2\n    json_payload=$(\n        jq -n -c \\\n            --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n            --arg k \"$keyName\" \\\n            --arg v \"$secretValue\" \\\n            '{\n            scope: $sc,\n            key: $k,\n            string_value: $v\n        }'\n    )\n    response=$(echo $json_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/put\")\n    echo $response\n\n}\n\ncreateKey \"LogAWkspId\" \"$ADB_LOG_WKSP_ID\"\ncreateKey \"LogAWkspkey\" \"$ADB_LOG_WKSP_KEY\"\nC_ADB_PAT_TOKEN=$(sed -e 's/[\\\"\\\\]//g' <<<$ADB_PAT_TOKEN)\ncreateKey \"dbPATKey\" \"$C_ADB_PAT_TOKEN\"\ncreateKey \"ehKey\" \"$EVENT_HUB_KEY\"\ncreateKey \"stgAccessKey\" \"$STORAGE_ACCESS_KEY\"\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken')]"
-              ]
-            },
-            {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "uploadFilesToAdb",
-              "location": "[parameters('location')]",
-              "kind": "AzureCLI",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[parameters('identity')]": {}
-                }
-              },
-              "properties": {
-                "azCliVersion": "2.26.0",
-                "timeout": "PT5M",
-                "cleanupPreference": "OnExpiration",
-                "retentionInterval": "PT1H",
-                "environmentVariables": [
-                  {
-                    "name": "ADB_WORKSPACE_URL",
-                    "value": "[parameters('adb_workspace_url')]"
-                  },
-                  {
-                    "name": "ADB_WORKSPACE_ID",
-                    "value": "[parameters('adb_workspace_id')]"
-                  }
-                ],
-                "scriptContent": "#/bin/bash -e\nUSER_FOLDER=$(pwd)\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Download init script\"\nmkdir -p init_scripts && cd init_scripts\ncurl -L \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/init_scripts/capture_log_metrics.sh\"\ncd $USER_FOLDER\n\necho \"Upload init script to /databricks/init/capture_log_metrics.sh\"\ncurl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" \\\n    https://${ADB_WORKSPACE_URL}/api/2.0/dbfs/put \\\n    --form contents=@init_scripts/capture_log_metrics.sh \\\n    --form path=\"/databricks/init/capture_log_metrics.sh\" \\\n    --form overwrite=true\n\necho \"Download Sample notebooks\"\nmkdir -p notebooks && cd notebooks\ncurl -L \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/notebooks/azure_runner_docs_example.ipynb\" \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/notebooks/timezone_test.ipynb\"\ncd $USER_FOLDER\n\necho \"Upload Sample notebooks\"\nfor notebook in notebooks/*.ipynb; do\n    filename=$(basename $notebook)\n    echo \"Upload sample notebook $notebook to workspace\"\n    curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" \\\n        https://${ADB_WORKSPACE_URL}/api/2.0/workspace/import \\\n        --form contents=@\"$notebook\" \\\n        --form path=\"/Shared/$filename\" \\\n        --form format=JUPYTER \\\n        --form language=SCALA \\\n        --form overwrite=true\ndone\n\necho \"Download Loganalytics jar files\"\nmkdir -p jars && cd jars\ncurl -L \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar\" \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/0719e3d8bd1e22451ab2319aa6359c9b2da18335/databricks/jars/spark-listeners_3.0.1_2.12-1.0.0.jar\"\ncd $USER_FOLDER\n\necho \"Upload jar files\"\nfor jar_file in jars/*.jar; do\n    filename=$(basename $jar_file)\n    echo \"Upload $jar_file file to DBFS path\"\n    curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" \\\n        https://${ADB_WORKSPACE_URL}/api/2.0/dbfs/put \\\n        --form filedata=@\"$jar_file\" \\\n        --form path=\"/FileStore/jars/$filename\" \\\n        --form overwrite=true\ndone\n"
+                "Application_Type": "web"
               }
             },
             {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "createAdbCluster",
-              "location": "[parameters('location')]",
-              "kind": "AzureCLI",
+              "type": "Microsoft.MachineLearningServices/workspaces",
+              "apiVersion": "2021-04-01",
+              "name": "[parameters('amlWorkspaceName')]",
+              "location": "[resourceGroup().location]",
               "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[parameters('identity')]": {}
-                }
+                "type": "SystemAssigned"
               },
               "properties": {
-                "azCliVersion": "2.26.0",
-                "timeout": "PT5M",
-                "retentionInterval": "PT1H",
-                "cleanupPreference": "OnExpiration",
-                "forceUpdateTag": "[parameters('force_update')]",
-                "environmentVariables": [
-                  {
-                    "name": "ADB_WORKSPACE_URL",
-                    "value": "[parameters('adb_workspace_url')]"
-                  },
-                  {
-                    "name": "ADB_WORKSPACE_ID",
-                    "value": "[parameters('adb_workspace_id')]"
-                  },
-                  {
-                    "name": "ADB_SECRET_SCOPE_NAME",
-                    "value": "[parameters('adb_secret_scope_name')]"
-                  },
-                  {
-                    "name": "DATABRICKS_CLUSTER_NAME",
-                    "value": "[parameters('adb_cluster_name')]"
-                  },
-                  {
-                    "name": "DATABRICKS_SPARK_VERSION",
-                    "value": "[parameters('adb_spark_version')]"
-                  },
-                  {
-                    "name": "DATABRICKS_NODE_TYPE",
-                    "value": "[parameters('adb_node_type')]"
-                  },
-                  {
-                    "name": "DATABRICKS_NUM_WORKERS",
-                    "value": "[parameters('adb_num_worker')]"
-                  },
-                  {
-                    "name": "DATABRICKS_AUTO_TERMINATE_MINUTES",
-                    "value": "[parameters('adb_auto_terminate_min')]"
-                  }
-                ],
-                "scriptContent": "#/bin/bash -e\n\n# Databricks cluster config variables\nDATABRICKS_SPARK_CONF='{\n        \"spark.databricks.delta.preview.enabled\": \"true\",\n        \"spark.eventLog.unknownRecord.maxSize\":\"16m\"\n    }'\nDATABRICKS_INIT_CONFIG='{\n        \"dbfs\": {\n            \"destination\": \"dbfs:/databricks/init/capture_log_metrics.sh\"\n        }\n    }'\nDATABRICKS_ENV_VARS='{\n        \"LOG_ANALYTICS_WORKSPACE_ID\": \"{{secrets/'$ADB_SECRET_SCOPE_NAME'/LogAWkspId}}\",\n        \"LOG_ANALYTICS_WORKSPACE_KEY\": \"{{secrets/'$ADB_SECRET_SCOPE_NAME'/LogAWkspkey}}\"\n    }'\nDATABRICKS_CLUSTER_LOG='{\n    \"dbfs\": {\n      \"destination\": \"dbfs:/logs\"\n    }\n}'\n\n# Databricks Auth headers\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\n# Create Auth header for Databricks\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create Cluster\"\n\nCLUSTER_CREATE_JSON_STRING=$(jq -n -c \\\n    --arg cn \"$DATABRICKS_CLUSTER_NAME\" \\\n    --arg sv \"$DATABRICKS_SPARK_VERSION\" \\\n    --arg nt \"$DATABRICKS_NODE_TYPE\" \\\n    --arg nw \"$DATABRICKS_NUM_WORKERS\" \\\n    --arg spc \"$DATABRICKS_SPARK_CONF\" \\\n    --arg at \"$DATABRICKS_AUTO_TERMINATE_MINUTES\" \\\n    --arg is \"$DATABRICKS_INIT_CONFIG\" \\\n    --arg ev \"$DATABRICKS_ENV_VARS\" \\\n    --arg cl \"$DATABRICKS_CLUSTER_LOG\" \\\n    '{cluster_name: $cn,\n                    idempotency_token: $cn,\n                    spark_version: $sv,\n                    node_type_id: $nt,\n                    num_workers: ($nw|tonumber),\n                    autotermination_minutes: ($at|tonumber),\n                    spark_conf: ($spc|fromjson),\n                    init_scripts: ($is|fromjson),\n                    spark_env_vars: ($ev|fromjson),\n                    cluster_log_conf: ($cl|fromjson)\n                    }')\n\njson=$(echo $CLUSTER_CREATE_JSON_STRING | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/clusters/create\")\necho \"$json\" >$AZ_SCRIPTS_OUTPUT_PATH\n"
+                "friendlyName": "[parameters('amlWorkspaceName')]",
+                "storageAccount": "[parameters('storageAccount')]",
+                "keyVault": "[parameters('keyVaultIdentifierId')]",
+                "applicationInsights": "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
+                "containerRegistry": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+                "allowPublicAccessWhenBehindVnet": false
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'secretScopeLink')]",
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'uploadFilesToAdb')]"
+                "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
+                "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]"
               ]
+            }
+          ],
+          "outputs": {
+            "amlId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('amlWorkspaceName'))]"
             },
+            "amlWkspName": {
+              "type": "string",
+              "value": "[parameters('amlWorkspaceName')]"
+            },
+            "amlProperties": {
+              "type": "object",
+              "value": "[reference(resourceId('Microsoft.MachineLearningServices/workspaces', parameters('amlWorkspaceName')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "AksForAml",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "amlWorkspaceName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'MLWorkspace'), '2019-10-01').outputs.amlWkspName.value]"
+          },
+          "sslLeafName": {
+            "value": "[variables('sslLeafName')]"
+          },
+          "aksAgentCount": {
+            "value": "[parameters('aksAgentCount')]"
+          },
+          "aksAgentVMSize": {
+            "value": "[parameters('aksAgentVMSize')]"
+          },
+          "aksAmlComputeName": {
+            "value": "[variables('aksAmlComputeName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.451.19169",
+              "templateHash": "8227777565612509437"
+            }
+          },
+          "parameters": {
+            "amlWorkspaceName": {
+              "type": "string"
+            },
+            "sslLeafName": {
+              "type": "string"
+            },
+            "aksAgentCount": {
+              "type": "int"
+            },
+            "aksAgentVMSize": {
+              "type": "string"
+            },
+            "aksAmlComputeName": {
+              "type": "string"
+            }
+          },
+          "functions": [],
+          "resources": [
             {
-              "type": "Microsoft.Resources/deploymentScripts",
-              "apiVersion": "2020-10-01",
-              "name": "configAdbCluster",
-              "location": "[parameters('location')]",
-              "kind": "AzureCLI",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[parameters('identity')]": {}
-                }
-              },
+              "type": "Microsoft.MachineLearningServices/workspaces/computes",
+              "apiVersion": "2021-07-01",
+              "name": "[format('{0}/{1}', parameters('amlWorkspaceName'), parameters('aksAmlComputeName'))]",
+              "location": "[resourceGroup().location]",
               "properties": {
-                "azCliVersion": "2.26.0",
-                "timeout": "PT5M",
-                "retentionInterval": "PT1H",
-                "cleanupPreference": "OnExpiration",
-                "forceUpdateTag": "[parameters('force_update')]",
-                "environmentVariables": [
-                  {
-                    "name": "ADB_WORKSPACE_URL",
-                    "value": "[parameters('adb_workspace_url')]"
+                "computeType": "AKS",
+                "computeLocation": "[resourceGroup().location]",
+                "description": "AKS cluster to provide inference REST endpoint",
+                "properties": {
+                  "loadBalancerType": "PublicIp",
+                  "agentCount": "[parameters('aksAgentCount')]",
+                  "agentVmSize": "[parameters('aksAgentVMSize')]",
+                  "aksNetworkingConfiguration": {
+                    "dnsServiceIP": "10.0.0.1",
+                    "dockerBridgeCidr": "172.17.0.1/16",
+                    "serviceCidr": "10.0.0.0/16"
                   },
-                  {
-                    "name": "ADB_WORKSPACE_ID",
-                    "value": "[parameters('adb_workspace_id')]"
-                  },
-                  {
-                    "name": "ADB_CLUSTER_ID",
-                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster')).outputs.cluster_id]"
+                  "clusterPurpose": "FastProd",
+                  "sslConfiguration": {
+                    "leafDomainLabel": "[parameters('sslLeafName')]",
+                    "status": "Auto"
                   }
-                ],
-                "scriptContent": "#/bin/bash -e\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\nlibraries='[\n        {\n                \"jar\": \"dbfs:/FileStore/jars/spark-listeners_3.0.1_2.12-1.0.0.jar\"\n        },\n        {\n                \"jar\": \"dbfs:/FileStore/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar\"\n        },\n        {\n            \"maven\": {\n                \"coordinates\": \"com.databricks.labs:overwatch_2.12:0.4.13\"\n            }\n        },\n        {\n            \"maven\": {\n                \"coordinates\": \"com.microsoft.azure:azure-eventhubs-spark_2.12:2.3.18\"\n            }\n        }\n    ]'\n\nlibrary_config=$(\n    jq -n -c \\\n        --arg aci \"$ADB_CLUSTER_ID\" \\\n        --arg li \"$libraries\" \\\n        '{\n      cluster_id: $aci,\n      libraries: ($li|fromjson)\n  }'\n)\n\njson=$(echo $library_config | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/libraries/install\")\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n\n# echo \"Create Overwatch Job\"\n# JOB_CREATE_JSON_STRING=$(jq -n -c \\\n#     --arg ci \"$cluster_id\" \\\n#     '{name: \"overwatch-job\",\n#                     existing_cluster_id: $ci,\n#                     notebook_task: {\n#                     \"notebook_path\": \"/Shared/azure_runner_docs_example.ipynb\"\n#                                     }\n#                     }')\n# create_notebook_job=$(echo $JOB_CREATE_JSON_STRING | d_curl \"https://${adbWorkspaceUrl}/api/2.0/jobs/create\")\n# echo $create_notebook_job\n\necho \"Configuring services done\"\n"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster')]"
-              ]
+                }
+              }
             }
           ]
         }
       },
       "dependsOn": [
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'loganalytics')]",
-        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'myIdentity')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'MLWorkspace')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     }
-  ]
+  ],
+  "outputs": {
+    "amlProperties": {
+      "type": "object",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'MLWorkspace'), '2019-10-01').outputs.amlProperties.value]"
+    }
+  }
 }
