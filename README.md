@@ -21,8 +21,9 @@
   <a href="#license">License</a>
 </p>
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Flordlinus%2Fdatabricks-all-in-one-bicep-template%2Fmain%2Fmain.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Flordlinus%2Fdatabricks-all-in-one-bicep-template%2Fmain%2Fazuredeploy.json)
 
+[![Visualize](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/visualizebutton.svg?sanitize=true)](http://armviz.io/#/?load=https%3A%2F%2Fraw.githubusercontent.com%2Flordlinus%2Fdatabricks-all-in-one-bicep-template%2Fmain%2Fazuredeploy.json)
 
 ## Why Bicep?
 
@@ -47,12 +48,12 @@ More resources available at this [Link](https://docs.microsoft.com/en-us/azure/a
   -  Configure Diagnostic logging.[Link](https://docs.microsoft.com/en-us/azure/databricks/administration-guide/account-settings/azure-diagnostic-logs)
   - Configure sending logs to Azure Monitor using [mspnp/spark-monitoring](https://github.com/mspnp/spark-monitoring)
   - Configure overwatch for fine grained monitoring. [Link](https://databrickslabs.github.io/overwatch/)
-
+* Create Azure ML workspace for Model registry and assist in deploying model to AKS
+* Create AKS compute for AML for real time model inference/scoring
 ## To Do
 
-* Create Databricks secret scope backed by Azure Key Vault. [Link](https://docs.microsoft.com/en-us/azure/databricks/security/secrets/secret-scopes) 
-* Create Azure SQL with Private link
-* Create and Link Azure ML workspace
+* Create Databricks secret scope backed by Azure Key Vault. [Link](https://docs.microsoft.com/en-us/azure/databricks/security/secrets/secret-scopes)
+* Create Azure SQL with Private link. [Link](https://docs.microsoft.com/en-us/azure/sql/private-link)
 * Create an integrated ADF pipeline
 * Integrate into Azure DevOps
 * Create Databricks performance dashboards
@@ -80,7 +81,7 @@ To clone and run this repo, you'll need [Git](https://git-scm.com), [Bicep](http
 From your command line:
 
 ### Option 1:
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Flordlinus%2Fdatabricks-all-in-one-bicep-template%2Fmain%2Fmain.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Flordlinus%2Fdatabricks-all-in-one-bicep-template%2Fmain%2Fazuredeploy.json)
 
 Click on the above link to deploy the template.
 
