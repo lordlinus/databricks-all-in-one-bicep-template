@@ -2,8 +2,8 @@ param keyVaultIdentifierId string
 param storageAccount string
 param amlWorkspaceName string
 param containerRegistryName string
-param identity string
 param applicationInsightsName string
+
 
 resource ctrRegistry 'Microsoft.ContainerRegistry/registries@2021-06-01-preview' = {
   name: containerRegistryName
@@ -40,3 +40,4 @@ resource aml 'Microsoft.MachineLearningServices/workspaces@2021-04-01' = {
 
 output amlId string = aml.id
 output amlWkspName string = amlWorkspaceName
+output amlProperties object = aml.properties
