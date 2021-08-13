@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.451.19169",
-      "templateHash": "1003514901379342346"
+      "templateHash": "8973805188190721166"
     }
   },
   "parameters": {
@@ -207,6 +207,7 @@
     "fwRoutingTable": "[format('{0}AdbRoutingTbl', substring(variables('uString'), 0, 6))]",
     "clientPcName": "[format('{0}ClientPc', substring(variables('uString'), 0, 6))]",
     "eHNameSpace": "[format('{0}eh', substring(variables('uString'), 0, 6))]",
+    "adbAkvLinkName": "[format('{0}SecretScope', substring(variables('uString'), 0, 6))]",
     "amlWorkspaceName": "[format('{0}AmlWksp', substring(variables('uString'), 0, 6))]",
     "containerRegistryName": "[format('{0}registry', substring(variables('uString'), 0, 6))]",
     "applicationInsightsName": "[format('{0}AppInsights', substring(variables('uString'), 0, 6))]",
@@ -2939,6 +2940,375 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
+      "name": "DatabricksCluster",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "identity": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'ManagedIdentity'), '2019-10-01').outputs.mIdentityId.value]"
+          },
+          "adb_workspace_url": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_workspaceUrl.value]"
+          },
+          "adb_workspace_id": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace'), '2019-10-01').outputs.databricks_workspace_id.value]"
+          },
+          "adb_secret_scope_name": {
+            "value": "[variables('adbAkvLinkName')]"
+          },
+          "akv_id": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault'), '2019-10-01').outputs.keyvault_id.value]"
+          },
+          "akv_uri": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault'), '2019-10-01').outputs.keyvault_uri.value]"
+          },
+          "LogAWkspId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'LogAnalytics'), '2019-10-01').outputs.logAnalyticsWkspId.value]"
+          },
+          "LogAWkspKey": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'LogAnalytics'), '2019-10-01').outputs.primarySharedKey.value]"
+          },
+          "storageKey": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount'), '2019-10-01').outputs.key1.value]"
+          },
+          "evenHubKey": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub'), '2019-10-01').outputs.eHPConnString.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.451.19169",
+              "templateHash": "9704762865465660923"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "force_update": {
+              "type": "string",
+              "defaultValue": "[utcNow()]"
+            },
+            "identity": {
+              "type": "string"
+            },
+            "akv_id": {
+              "type": "string"
+            },
+            "akv_uri": {
+              "type": "string"
+            },
+            "adb_pat_lifetime": {
+              "type": "string",
+              "defaultValue": "3600"
+            },
+            "adb_workspace_url": {
+              "type": "string"
+            },
+            "adb_workspace_id": {
+              "type": "string"
+            },
+            "adb_secret_scope_name": {
+              "type": "string"
+            },
+            "adb_cluster_name": {
+              "type": "string",
+              "defaultValue": "test-cluster-01"
+            },
+            "adb_spark_version": {
+              "type": "string",
+              "defaultValue": "7.3.x-scala2.12"
+            },
+            "adb_node_type": {
+              "type": "string",
+              "defaultValue": "Standard_D3_v2"
+            },
+            "adb_num_worker": {
+              "type": "string",
+              "defaultValue": "3"
+            },
+            "adb_auto_terminate_min": {
+              "type": "string",
+              "defaultValue": "30"
+            },
+            "LogAWkspId": {
+              "type": "string"
+            },
+            "LogAWkspKey": {
+              "type": "string"
+            },
+            "storageKey": {
+              "type": "string"
+            },
+            "evenHubKey": {
+              "type": "string"
+            }
+          },
+          "functions": [],
+          "resources": [
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "createAdbPATToken",
+              "location": "[parameters('location')]",
+              "kind": "AzureCLI",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[parameters('identity')]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.26.0",
+                "timeout": "PT5M",
+                "cleanupPreference": "OnExpiration",
+                "retentionInterval": "PT1H",
+                "environmentVariables": [
+                  {
+                    "name": "ADB_WORKSPACE_URL",
+                    "value": "[parameters('adb_workspace_url')]"
+                  },
+                  {
+                    "name": "ADB_WORKSPACE_ID",
+                    "value": "[parameters('adb_workspace_id')]"
+                  },
+                  {
+                    "name": "PAT_LIFETIME",
+                    "value": "[parameters('adb_pat_lifetime')]"
+                  }
+                ],
+                "scriptContent": "#/bin/bash -e\npat_token_config=$(jq -n -c \\\n    --arg ls \"$PAT_LIFETIME\" \\\n    --arg co \"Example Token\" \\\n    '{lifetime_seconds: ($ls|tonumber),\n     comment: $co}')\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\njson=$(echo \"$pat_token_config\" | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/token/create\")\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n"
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "secretScopeLink",
+              "location": "[parameters('location')]",
+              "kind": "AzureCLI",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[parameters('identity')]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.26.0",
+                "timeout": "PT1H",
+                "cleanupPreference": "OnExpiration",
+                "retentionInterval": "PT1H",
+                "environmentVariables": [
+                  {
+                    "name": "ADB_WORKSPACE_URL",
+                    "value": "[parameters('adb_workspace_url')]"
+                  },
+                  {
+                    "name": "ADB_WORKSPACE_ID",
+                    "value": "[parameters('adb_workspace_id')]"
+                  },
+                  {
+                    "name": "ADB_SECRET_SCOPE_NAME",
+                    "value": "[parameters('adb_secret_scope_name')]"
+                  },
+                  {
+                    "name": "AKV_ID",
+                    "value": "[parameters('akv_id')]"
+                  },
+                  {
+                    "name": "AKV_URI",
+                    "value": "[parameters('akv_uri')]"
+                  },
+                  {
+                    "name": "ADB_LOG_WKSP_ID",
+                    "value": "[parameters('LogAWkspId')]"
+                  },
+                  {
+                    "name": "ADB_LOG_WKSP_KEY",
+                    "value": "[parameters('LogAWkspKey')]"
+                  },
+                  {
+                    "name": "STORAGE_ACCESS_KEY",
+                    "value": "[parameters('storageKey')]"
+                  },
+                  {
+                    "name": "EVENT_HUB_KEY",
+                    "value": "[parameters('evenHubKey')]"
+                  },
+                  {
+                    "name": "ADB_PAT_TOKEN",
+                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken')).outputs.token_value]"
+                  }
+                ],
+                "scriptContent": "#/bin/bash -e\n\n# TODO: Create AKV backed secret scope using User assigned managed identity. Currently not supported\n# akv_backed='{\"resource_id\": \"'${AKV_ID}'\",\"dns_name\": \"'${AKV_URI}'\"}'\n# akv_secret_scope_payload=$(\n#     jq -n -c \\\n#         --arg sc \"akv_test\" \\\n#         --arg bak \"$akv_backed\" \\\n#         '{\n#         scope: $sc,\n#         scope_backend_type: \"AZURE_KEYVAULT\",\n#         initial_manage_principal: \"users\",\n#         backend_azure_keyvault: ($bak|fromjson)\n#      }'\n# )\n\n# Create secret scope backed by ADB\nadb_secret_scope_payload=$(\n    jq -n -c \\\n        --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n        '{\n        scope: $sc,\n        initial_manage_principal: \"users\"\n     }'\n)\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create ADB secret scope backed by Databricks key vault\"\njson=$(echo $adb_secret_scope_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/scopes/create\")\n\nfunction createKey() {\n    local keyName=$1\n    local secretValue=$2\n    json_payload=$(\n        jq -n -c \\\n            --arg sc \"$ADB_SECRET_SCOPE_NAME\" \\\n            --arg k \"$keyName\" \\\n            --arg v \"$secretValue\" \\\n            '{\n            scope: $sc,\n            key: $k,\n            string_value: $v\n        }'\n    )\n    response=$(echo $json_payload | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/secrets/put\")\n    echo $response\n\n}\n\ncreateKey \"LogAWkspId\" \"$ADB_LOG_WKSP_ID\"\ncreateKey \"LogAWkspkey\" \"$ADB_LOG_WKSP_KEY\"\nC_ADB_PAT_TOKEN=$(sed -e 's/[\\\"\\\\]//g' <<<$ADB_PAT_TOKEN)\ncreateKey \"dbPATKey\" \"$C_ADB_PAT_TOKEN\"\ncreateKey \"ehKey\" \"$EVENT_HUB_KEY\"\ncreateKey \"stgAccessKey\" \"$STORAGE_ACCESS_KEY\"\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n\n# tail -f /dev/null"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "uploadFilesToAdb",
+              "location": "[parameters('location')]",
+              "kind": "AzureCLI",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[parameters('identity')]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.26.0",
+                "timeout": "PT5M",
+                "cleanupPreference": "OnExpiration",
+                "retentionInterval": "PT1H",
+                "environmentVariables": [
+                  {
+                    "name": "ADB_WORKSPACE_URL",
+                    "value": "[parameters('adb_workspace_url')]"
+                  },
+                  {
+                    "name": "ADB_WORKSPACE_ID",
+                    "value": "[parameters('adb_workspace_id')]"
+                  }
+                ],
+                "scriptContent": "#/bin/bash -e\nUSER_FOLDER=$(pwd)\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Download init script\"\nmkdir -p init_scripts && cd init_scripts\ncurl -L \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/main/databricks/init_scripts/capture_log_metrics.sh\"\ncd $USER_FOLDER\n\necho \"Upload init script to /databricks/init/capture_log_metrics.sh\"\ncurl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" \\\n    https://${ADB_WORKSPACE_URL}/api/2.0/dbfs/put \\\n    --form contents=@init_scripts/capture_log_metrics.sh \\\n    --form path=\"/databricks/init/capture_log_metrics.sh\" \\\n    --form overwrite=true\n\necho \"Download Sample notebooks\"\nmkdir -p notebooks && cd notebooks\ncurl -L \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/00a2978db789d1f1edf63603666d37a1ab72c86f/databricks/notebooks/azure_runner_docs_example.ipynb\" \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/00a2978db789d1f1edf63603666d37a1ab72c86f/databricks/notebooks/timezone_test.ipynb\"\ncd $USER_FOLDER\n\necho \"Upload Sample notebooks\"\nfor notebook in notebooks/*.ipynb; do\n    filename=$(basename $notebook)\n    echo \"Upload sample notebook $notebook to workspace\"\n    curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" \\\n        https://${ADB_WORKSPACE_URL}/api/2.0/workspace/import \\\n        --form contents=@\"$notebook\" \\\n        --form path=\"/Shared/$filename\" \\\n        --form format=JUPYTER \\\n        --form language=SCALA \\\n        --form overwrite=true\ndone\n\necho \"Download Loganalytics jar files\"\nmkdir -p jars && cd jars\ncurl -L \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/00a2978db789d1f1edf63603666d37a1ab72c86f/databricks/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar\" \\\n    -O \"https://raw.githubusercontent.com/lordlinus/databricks-all-in-one-bicep-template/00a2978db789d1f1edf63603666d37a1ab72c86f/databricks/jars/spark-listeners_3.0.1_2.12-1.0.0.jar\"\ncd $USER_FOLDER\n\necho \"Upload jar files\"\nfor jar_file in jars/*.jar; do\n    filename=$(basename $jar_file)\n    echo \"Upload $jar_file file to DBFS path\"\n    curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" \\\n        https://${ADB_WORKSPACE_URL}/api/2.0/dbfs/put \\\n        --form filedata=@\"$jar_file\" \\\n        --form path=\"/FileStore/jars/$filename\" \\\n        --form overwrite=true\ndone\n"
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "createAdbCluster",
+              "location": "[parameters('location')]",
+              "kind": "AzureCLI",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[parameters('identity')]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.26.0",
+                "timeout": "PT5M",
+                "retentionInterval": "PT1H",
+                "cleanupPreference": "OnExpiration",
+                "forceUpdateTag": "[parameters('force_update')]",
+                "environmentVariables": [
+                  {
+                    "name": "ADB_WORKSPACE_URL",
+                    "value": "[parameters('adb_workspace_url')]"
+                  },
+                  {
+                    "name": "ADB_WORKSPACE_ID",
+                    "value": "[parameters('adb_workspace_id')]"
+                  },
+                  {
+                    "name": "ADB_SECRET_SCOPE_NAME",
+                    "value": "[parameters('adb_secret_scope_name')]"
+                  },
+                  {
+                    "name": "DATABRICKS_CLUSTER_NAME",
+                    "value": "[parameters('adb_cluster_name')]"
+                  },
+                  {
+                    "name": "DATABRICKS_SPARK_VERSION",
+                    "value": "[parameters('adb_spark_version')]"
+                  },
+                  {
+                    "name": "DATABRICKS_NODE_TYPE",
+                    "value": "[parameters('adb_node_type')]"
+                  },
+                  {
+                    "name": "DATABRICKS_NUM_WORKERS",
+                    "value": "[parameters('adb_num_worker')]"
+                  },
+                  {
+                    "name": "DATABRICKS_AUTO_TERMINATE_MINUTES",
+                    "value": "[parameters('adb_auto_terminate_min')]"
+                  }
+                ],
+                "scriptContent": "#/bin/bash -e\n\n# Databricks cluster config variables\nDATABRICKS_SPARK_CONF='{\n        \"spark.databricks.delta.preview.enabled\": \"true\",\n        \"spark.eventLog.unknownRecord.maxSize\":\"16m\"\n    }'\nDATABRICKS_INIT_CONFIG='{\n        \"dbfs\": {\n            \"destination\": \"dbfs:/databricks/init/capture_log_metrics.sh\"\n        }\n    }'\nDATABRICKS_ENV_VARS='{\n        \"LOG_ANALYTICS_WORKSPACE_ID\": \"{{secrets/'$ADB_SECRET_SCOPE_NAME'/LogAWkspId}}\",\n        \"LOG_ANALYTICS_WORKSPACE_KEY\": \"{{secrets/'$ADB_SECRET_SCOPE_NAME'/LogAWkspkey}}\"\n    }'\nDATABRICKS_CLUSTER_LOG='{\n    \"dbfs\": {\n      \"destination\": \"dbfs:/logs\"\n    }\n}'\n\n# Databricks Auth headers\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\n# Create Auth header for Databricks\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\necho \"Create Cluster\"\n\nCLUSTER_CREATE_JSON_STRING=$(jq -n -c \\\n    --arg cn \"$DATABRICKS_CLUSTER_NAME\" \\\n    --arg sv \"$DATABRICKS_SPARK_VERSION\" \\\n    --arg nt \"$DATABRICKS_NODE_TYPE\" \\\n    --arg nw \"$DATABRICKS_NUM_WORKERS\" \\\n    --arg spc \"$DATABRICKS_SPARK_CONF\" \\\n    --arg at \"$DATABRICKS_AUTO_TERMINATE_MINUTES\" \\\n    --arg is \"$DATABRICKS_INIT_CONFIG\" \\\n    --arg ev \"$DATABRICKS_ENV_VARS\" \\\n    --arg cl \"$DATABRICKS_CLUSTER_LOG\" \\\n    '{cluster_name: $cn,\n                    idempotency_token: $cn,\n                    spark_version: $sv,\n                    node_type_id: $nt,\n                    num_workers: ($nw|tonumber),\n                    autotermination_minutes: ($at|tonumber),\n                    spark_conf: ($spc|fromjson),\n                    init_scripts: ($is|fromjson),\n                    spark_env_vars: ($ev|fromjson),\n                    cluster_log_conf: ($cl|fromjson)\n                    }')\n\njson=$(echo $CLUSTER_CREATE_JSON_STRING | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/clusters/create\")\necho \"$json\" >$AZ_SCRIPTS_OUTPUT_PATH\n"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'secretScopeLink')]",
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'uploadFilesToAdb')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2020-10-01",
+              "name": "configAdbCluster",
+              "location": "[parameters('location')]",
+              "kind": "AzureCLI",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[parameters('identity')]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.26.0",
+                "timeout": "PT5M",
+                "retentionInterval": "PT1H",
+                "cleanupPreference": "OnExpiration",
+                "forceUpdateTag": "[parameters('force_update')]",
+                "environmentVariables": [
+                  {
+                    "name": "ADB_WORKSPACE_URL",
+                    "value": "[parameters('adb_workspace_url')]"
+                  },
+                  {
+                    "name": "ADB_WORKSPACE_ID",
+                    "value": "[parameters('adb_workspace_id')]"
+                  },
+                  {
+                    "name": "ADB_CLUSTER_ID",
+                    "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster')).outputs.cluster_id]"
+                  }
+                ],
+                "scriptContent": "#/bin/bash -e\n\nadbGlobalToken=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --output json | jq -r .accessToken)\nazureApiToken=$(az account get-access-token --resource https://management.core.windows.net/ --output json | jq -r .accessToken)\n\nauthHeader=\"Authorization: Bearer $adbGlobalToken\"\nadbSPMgmtToken=\"X-Databricks-Azure-SP-Management-Token:$azureApiToken\"\nadbResourceId=\"X-Databricks-Azure-Workspace-Resource-Id:$ADB_WORKSPACE_ID\"\n\nlibraries='[\n        {\n                \"jar\": \"dbfs:/FileStore/jars/spark-listeners_3.0.1_2.12-1.0.0.jar\"\n        },\n        {\n                \"jar\": \"dbfs:/FileStore/jars/spark-listeners-loganalytics_3.0.1_2.12-1.0.0.jar\"\n        },\n        {\n            \"maven\": {\n                \"coordinates\": \"com.databricks.labs:overwatch_2.12:0.4.13\"\n            }\n        },\n        {\n            \"maven\": {\n                \"coordinates\": \"com.microsoft.azure:azure-eventhubs-spark_2.12:2.3.18\"\n            }\n        }\n    ]'\n\nlibrary_config=$(\n    jq -n -c \\\n        --arg aci \"$ADB_CLUSTER_ID\" \\\n        --arg li \"$libraries\" \\\n        '{\n      cluster_id: $aci,\n      libraries: ($li|fromjson)\n  }'\n)\n\njson=$(echo $library_config | curl -sS -X POST -H \"$authHeader\" -H \"$adbSPMgmtToken\" -H \"$adbResourceId\" --data-binary \"@-\" \"https://${ADB_WORKSPACE_URL}/api/2.0/libraries/install\")\n\necho \"$json\" >\"$AZ_SCRIPTS_OUTPUT_PATH\"\n\n# echo \"Create Overwatch Job\"\n# JOB_CREATE_JSON_STRING=$(jq -n -c \\\n#     --arg ci \"$cluster_id\" \\\n#     '{name: \"overwatch-job\",\n#                     existing_cluster_id: $ci,\n#                     notebook_task: {\n#                     \"notebook_path\": \"/Shared/azure_runner_docs_example.ipynb\"\n#                                     }\n#                     }')\n# create_notebook_job=$(echo $JOB_CREATE_JSON_STRING | d_curl \"https://${adbWorkspaceUrl}/api/2.0/jobs/create\")\n# echo $create_notebook_job\n\necho \"Configuring services done\"\n"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "patOutput": {
+              "type": "object",
+              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbPATToken'))]"
+            },
+            "adbCluster": {
+              "type": "object",
+              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', 'createAdbCluster'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'DatabricksWorkspace')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'StorageAccount')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'EventHub')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'KeyVault')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'LogAnalytics')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'ManagedIdentity')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
       "name": "MLWorkspace",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -3145,11 +3515,5 @@
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
       ]
     }
-  ],
-  "outputs": {
-    "amlProperties": {
-      "type": "object",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupName')), 'Microsoft.Resources/deployments', 'MLWorkspace'), '2019-10-01').outputs.amlProperties.value]"
-    }
-  }
+  ]
 }
