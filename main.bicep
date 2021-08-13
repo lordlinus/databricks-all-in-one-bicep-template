@@ -13,6 +13,14 @@ param adminUsername string
 @secure()
 param adminPassword string
 
+@description('The number of nodes for the cluster.')
+@minValue(3)
+@maxValue(50)
+param aksAgentCount int = 3
+
+@description('The size of the VM instances')
+param aksAgentVMSize string = 'Standard_A4_v2'
+
 var uniqueSubString = '${uniqueString(guid(subscription().subscriptionId))}'
 var uString = '${prefix}${uniqueSubString}'
 
@@ -29,11 +37,11 @@ var firewallPublicIpName = '${substring(uString, 0, 6)}FWPIp'
 var fwRoutingTable = '${substring(uString, 0, 6)}AdbRoutingTbl'
 var clientPcName = '${substring(uString, 0, 6)}ClientPc'
 var eHNameSpace = '${substring(uString, 0, 6)}eh'
-var adbAkvLinkName = '${substring(uString, 0, 6)}SecretScope'
 var amlWorkspaceName = '${substring(uString, 0, 6)}AmlWksp'
 var containerRegistryName = '${substring(uString, 0, 6)}registry'
 var applicationInsightsName = '${substring(uString, 0, 6)}AppInsights'
-var aksClusterName = '${substring(uString, 0, 6)}aksClusterName'
+var sslLeafName = '${toLower(substring(uString, 0, 6))}'
+var aksAmlComputeName = 'aks-for-aml'
 // var routeTableName = 'RouteTable'
 // creating the event hub same as namespace
 var eventHubName = eHNameSpace
@@ -248,52 +256,45 @@ module privateEndPoints './network/privateendpoint.template.bicep' = {
   }
 }
 
-module createDatabricksCluster './databricks/deployment.template.bicep' = {
-  scope: rg
-  name: 'DatabricksCluster'
-  params: {
-    location: location
-    identity: myIdentity.outputs.mIdentityId
-    adb_workspace_url: adb.outputs.databricks_workspaceUrl
-    adb_workspace_id: adb.outputs.databricks_workspace_id
-    adb_secret_scope_name: adbAkvLinkName
-    akv_id: keyVault.outputs.keyvault_id
-    akv_uri: keyVault.outputs.keyvault_uri
-    LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
-    LogAWkspKey: loganalytics.outputs.primarySharedKey
-    storageKey: adlsGen2.outputs.key1
-    evenHubKey: eventHubLogging.outputs.eHPConnString
-  }
-}
-
-module aks 'aks/cluster.template.bicep' = {
-  scope: rg
-  name: 'aksCluster'
-  params: {
-    name: aksClusterName
-  }
-}
+// module createDatabricksCluster './databricks/deployment.template.bicep' = {
+//   scope: rg
+//   name: 'DatabricksCluster'
+//   params: {
+//     location: location
+//     identity: myIdentity.outputs.mIdentityId
+//     adb_workspace_url: adb.outputs.databricks_workspaceUrl
+//     adb_workspace_id: adb.outputs.databricks_workspace_id
+//     adb_secret_scope_name: adbAkvLinkName
+//     akv_id: keyVault.outputs.keyvault_id
+//     akv_uri: keyVault.outputs.keyvault_uri
+//     LogAWkspId: loganalytics.outputs.logAnalyticsWkspId
+//     LogAWkspKey: loganalytics.outputs.primarySharedKey
+//     storageKey: adlsGen2.outputs.key1
+//     evenHubKey: eventHubLogging.outputs.eHPConnString
+//   }
+// }
 
 module aml './aml/machinelearning.template.bicep' = {
   scope: rg
-  name: 'MachineLearning'
+  name: 'MLWorkspace'
   params: {
     amlWorkspaceName: amlWorkspaceName
     containerRegistryName: containerRegistryName
     keyVaultIdentifierId: keyVault.outputs.keyvault_id
     storageAccount: adlsGen2.outputs.storageaccount_id
-    identity: myIdentity.outputs.mIdentityId
     applicationInsightsName: applicationInsightsName
   }
 }
 
-module linkAmlAks './aml/aml-aks.deployment.bicep' = {
+module AksForAml './aks/aks-for-aml.template.bicep' = {
   scope: rg
-  name: 'linkAmlAks'
+  name: 'AksForAml'
   params: {
-    identity: myIdentity.outputs.mIdentityId
-    aksId: aks.outputs.id
-    workspaceName: aml.outputs.amlWkspName
+    amlWorkspaceName: aml.outputs.amlWkspName
+    sslLeafName: sslLeafName
+    aksAgentCount:aksAgentCount
+    aksAgentVMSize: aksAgentVMSize
+    aksAmlComputeName: aksAmlComputeName
   }
 }
 
@@ -316,3 +317,4 @@ module linkAmlAks './aml/aml-aks.deployment.bicep' = {
 // output eHPConnString string = eventHubLogging.outputs.eHPConnString
 // output dsOutputs object = createDatabricksCluster.outputs.patOutput
 // output adbCluster object = createDatabricksCluster.outputs.adbCluster
+output amlProperties object = aml.outputs.amlProperties
